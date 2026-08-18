@@ -1,10 +1,11 @@
-use iced_layershell::{Settings, application};
-use iced_layershell::reexport::Anchor;
-use iced_layershell::settings::{StartMode, LayerShellSettings};
-
-use crate::bar::Bar;
-
 mod bar;
+mod modules;
+
+use iced_layershell::reexport::Anchor;
+use iced_layershell::settings::{LayerShellSettings, StartMode};
+use iced_layershell::{Settings, application};
+
+use bar::Bar;
 
 fn main() -> iced_layershell::Result {
     let width = 0;
@@ -26,5 +27,6 @@ fn main() -> iced_layershell::Result {
 
     application(Bar::default, Bar::namespace, Bar::update, Bar::view)
         .settings(settings)
+        .subscription(Bar::subscription)
         .run()
 }

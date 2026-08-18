@@ -10,17 +10,19 @@
             default =
                 let
                     libraries = with pkgs; [
-                        wayland
                         libxkbcommon
+                        wayland
                     ];
                 in
                 pkgs.mkShell {
-                    packages = with pkgs; [
+                    buildInputs = with pkgs; [
                         pkg-config
-                    ];
+                        rustc
+                        cargo
+                    ] ++ libraries;
                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath libraries;
                     PKG_CONFIG_PATH = pkgs.lib.strings.concatStringsSep ":" (
-                        builtins.map (lib: "${pkgs.lib.getDev lib}/lib/pkgconfig") libraries
+                        builtins.map (lib: "${pkgs.lib.getDev lib}/lib/pkgconfig/") libraries
                     );
                 };
         }) inputs.nixpkgs.legacyPackages;
