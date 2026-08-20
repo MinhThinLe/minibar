@@ -1,16 +1,18 @@
 use std::any::TypeId;
 use std::path::Path;
+use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 
 use iced::futures::{SinkExt, Stream};
-use iced::widget::{row, text};
-use iced::{Element, Padding, Subscription, stream};
+use iced::widget::{container, text};
+use iced::{Element, Subscription, stream};
+use toml::Table;
 
 use crate::bar::BarEvent;
-use crate::modules::{Module, ModuleData, ModuleUpdate};
+use crate::modules::{CommonStyle, Module, ModuleData, ModuleUpdate};
 
 #[derive(Default, Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BatteryState {
@@ -26,9 +28,16 @@ pub struct BatteryStatus {
     pub state: BatteryState,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
+pub struct BatteryConfig {
+    format: Box<str>,
+}
+
+#[derive(Default, Debug)]
 pub struct Battery {
     status: BatteryStatus,
+    config: BatteryConfig,
+    style: CommonStyle,
 }
 
 impl ModuleData for BatteryStatus {}
@@ -45,10 +54,19 @@ impl FromStr for BatteryState {
     }
 }
 
+impl Battery {
+    fn get_text(&self) -> String {
+        const PERCENTAGE: &str = "{percentage}";
+        self.config
+            .format
+            .replace(PERCENTAGE, &self.status.percentage.to_string())
+    }
+}
+
 impl Module for Battery {
     fn view(&self) -> Element<'_, BarEvent> {
-        row![text!("  {}%", self.status.percentage)]
-            .padding(Padding::left(Padding::new(0.0), 10.0))
+        container(text(self.get_text()).color(self.style.foreground))
+            .padding(self.style.padding)
             .into()
     }
 
@@ -61,6 +79,28 @@ impl Module for Battery {
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
         Some(Subscription::run(worker))
+    }
+
+    fn try_new(table: &Table) -> Option<Rc<dyn Module>>
+    where
+        Self: Sized,
+    {
+        const DEFAULT_FORMAT: &str = "{percentage}%";
+
+        let format = table.get("format").map_or(DEFAULT_FORMAT, |format| {
+            format.as_str().unwrap_or(DEFAULT_FORMAT)
+        });
+        let style = CommonStyle::from(table);
+
+        let config = BatteryConfig {
+            format: format.into(),
+        };
+
+        Some(Rc::new(Self {
+            config,
+            style,
+            status: BatteryStatus::default(),
+        }))
     }
 }
 

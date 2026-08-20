@@ -1,0 +1,9 @@
+[bar]
+left_modules = [
+    "battery"
+]
+
+background = 0xff00ff00
+
+[battery]
+format = "BAT {percentage}%"

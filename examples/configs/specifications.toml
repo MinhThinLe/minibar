@@ -1,0 +1,33 @@
+[bar]
+theme = "gruvbox dark" # Use iced's built-in theme
+background = 0xffffffff # Theme overriding
+foreground = 0xff00ff00 # Uses RGBA format
+left_modules = [
+    "workspaces" # Intrinsic module
+]
+
+center_modules = [
+    "clock"
+]
+
+right_modules = [
+    "system_monitors" # Create custom modules simply by declaring a module that isn't intrinsic to the program
+]
+
+# Further specify configuration for a module with a table, required for custom modules
+[system_monitors]
+# Either
+group = [
+    "cpu",
+    "memory",
+    "temperature",
+    "battery",
+]
+# Or
+on_click = "command-to-run along-with-its-arguments"
+interval = 1
+background = 0xff000000 # Use the more specific theme if provided
+
+[cpu] # Intrinsic module
+format = " {utilization}%" # Define custom format
+interval = 1 # Polling interval
