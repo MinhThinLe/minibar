@@ -1,5 +1,6 @@
 mod bar;
 mod config;
+mod logger;
 mod modules;
 
 use std::path::PathBuf;

@@ -4,8 +4,7 @@ use iced::Theme;
 use toml::{Table, Value, value::Array};
 
 use crate::{
-    bar::Bar,
-    modules::{Module, battery::Battery},
+    bar::Bar, logger::{error, warn}, modules::{Module, battery::Battery}
 };
 
 type ModuleFactoryFunction = fn(&Table) -> Option<Rc<dyn Module>>;
@@ -20,7 +19,7 @@ impl From<Table> for Bar {
     fn from(value: Table) -> Self {
         let modules = parse_modules(&value);
         let Some(bar_config) = value.get("bar") else {
-            println!("Empty bar config, nothing to do");
+            warn("Bar config empty, nothing to do");
             return Bar {
                 left_modules: Vec::new(),
                 center_modules: Vec::new(),
@@ -62,13 +61,13 @@ fn get_module_list(
     let mut modules = Vec::with_capacity(array.len());
     for item in array {
         let Some(module_name) = item.as_str() else {
-            println!("left_modules content has to be an array of strings");
+            warn("Found non-string value in module array, skipping");
             continue;
         };
         if let Some(module) = module_registry.get(module_name) {
             modules.push(module.clone());
         } else {
-            println!("Couldn't locate module with name {module_name}")
+            warn(format!("Couldn't locate module with name {module_name}"));
         }
     }
     modules
@@ -90,7 +89,7 @@ fn parse_modules(table: &Table) -> HashMap<String, Rc<dyn Module>> {
         if let Some(module) = init_function(value.as_table().unwrap()) {
             modules.insert(module_name.to_string(), module);
         } else {
-            println!("Parsing module {module_name} failed"); // TODO: handle this error
+            error(format!("Parsing module {module_name} failed")); // TODO: handle this error
         }
     }
 
@@ -131,7 +130,7 @@ fn get_builtin_theme(theme_name: &str) -> Option<Theme> {
         "oxocarbon" => Theme::Oxocarbon,
         "ferra" => Theme::Ferra,
         other => {
-            println!("Unrecognised theme {other}");
+            error(format!("Unrecognized theme {other}"));
             return None;
         }
     })
