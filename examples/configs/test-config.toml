@@ -1,4 +1,6 @@
 [bar]
+font = "JetBrainsMono NFM"
+size = 32
 left_modules = [
     "battery"
 ]

@@ -3,26 +3,73 @@ mod config;
 mod logger;
 mod modules;
 
+use std::fs;
 use std::path::PathBuf;
 
+use iced::Font;
 use iced_layershell::reexport::Anchor;
 use iced_layershell::settings::{LayerShellSettings, StartMode};
 use iced_layershell::{Settings, application};
 
 use bar::Bar;
+use lazy_static::lazy_static;
+use toml::Table;
+
+struct BarParameter {
+    font_name: String,
+    bar_size: u32,
+}
+
+impl Default for BarParameter {
+    fn default() -> Self {
+        Self {
+            font_name: String::from("monospace"),
+            bar_size: 32,
+        }
+    }
+}
+
+lazy_static! {
+    // Because a custom font could only be instantiated with a &'static str.
+    // A &'static T is a reference to a memory location that has the same lifetime as the program.
+    // The lifetime of the program is defined to be the period of time between loading the program
+    // into memory and its termination.
+    // This is the only way that I know of to initialise a value after compile time but before run time.
+    static ref BAR_PARAMETER: BarParameter = {
+        const DEFAULT_BAR_SIZE: u32 = 32;
+        const DEFAULT_FONT_NAME: &str = "monospace";
+
+        let config_file = get_config_location();
+        let Ok(config_content) = fs::read_to_string(config_file) else {
+            return BarParameter::default();
+        };
+
+        let Ok(config_table) = config_content.parse::<Table>() else {
+            return BarParameter::default();
+        };
+
+        let Some(bar_config) = config_table.get("bar") else {
+            return BarParameter::default();
+        };
+
+        let font_name = bar_config.get("font")
+            .map_or(DEFAULT_FONT_NAME, |value| value.as_str()
+            .unwrap_or(DEFAULT_FONT_NAME));
+
+        let bar_size = bar_config.get("size")
+            .map_or(DEFAULT_BAR_SIZE, |value| value.as_integer()
+            .unwrap_or(DEFAULT_BAR_SIZE as i64) as u32);
+
+        BarParameter { font_name: font_name.to_string(), bar_size }
+    };
+}
 
 fn main() -> iced_layershell::Result {
-    // TODO: Make a bootstrap struct
-    // A 2 stage initialization like this is necessary as there's currently no way to set the
-    // application's default font on runtime. Iced 0.15 will make this obsolete and this code will
-    // be refactored when iced 0.15 is released
-    let width = 0;
-    let heigth = 32;
     let start_mode = StartMode::Active;
 
     let layer_settings = LayerShellSettings {
-        size: Some((width, heigth)),
-        exclusive_zone: heigth as i32,
+        size: Some((BAR_PARAMETER.bar_size, BAR_PARAMETER.bar_size)),
+        exclusive_zone: BAR_PARAMETER.bar_size.cast_signed(),
         anchor: Anchor::Top | Anchor::Left | Anchor::Right,
         start_mode,
         ..Default::default()
@@ -36,6 +83,7 @@ fn main() -> iced_layershell::Result {
     application(Bar::start, Bar::namespace, Bar::update, Bar::view)
         .settings(settings)
         .subscription(Bar::subscription)
+        .default_font(Font::with_name(&BAR_PARAMETER.font_name))
         .theme(Bar::theme)
         .run()
 }

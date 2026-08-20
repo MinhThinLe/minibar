@@ -4,7 +4,9 @@ use iced::Theme;
 use toml::{Table, Value, value::Array};
 
 use crate::{
-    bar::Bar, logger::{error, warn}, modules::{Module, battery::Battery}
+    bar::Bar,
+    logger::{error, warn},
+    modules::{Module, battery::Battery},
 };
 
 type ModuleFactoryFunction = fn(&Table) -> Option<Rc<dyn Module>>;
