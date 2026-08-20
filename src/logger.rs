@@ -3,9 +3,8 @@ use std::{
     fmt::Display,
     io::{Write, stderr},
     str::FromStr,
+    sync::LazyLock,
 };
-
-use lazy_static::lazy_static;
 
 #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
 enum LogLevel {
@@ -29,29 +28,27 @@ impl FromStr for LogLevel {
     }
 }
 
-lazy_static! {
-    static ref LOG_LEVEL: LogLevel = {
-        const LOG_LEVEL_FLAG: &str = "--log-level";
-        let commandline_args = env::args().collect::<Vec<String>>();
-        let Some((index, _)) = commandline_args
-            .iter()
-            .enumerate()
-            .find(|(_index, item)| item.as_str() == LOG_LEVEL_FLAG)
-        else {
-            return LogLevel::default();
-        };
-
-        let Some(log_level) = commandline_args.get(index + 1) else {
-            return LogLevel::default();
-        };
-
-        let Ok(log_level) = LogLevel::from_str(log_level) else {
-            return LogLevel::default();
-        };
-
-        log_level
+static LOG_LEVEL: LazyLock<LogLevel> = LazyLock::new(|| {
+    const LOG_LEVEL_FLAG: &str = "--log-level";
+    let commandline_args = env::args().collect::<Vec<String>>();
+    let Some((index, _)) = commandline_args
+        .iter()
+        .enumerate()
+        .find(|(_index, item)| item.as_str() == LOG_LEVEL_FLAG)
+    else {
+        return LogLevel::default();
     };
-}
+
+    let Some(log_level) = commandline_args.get(index + 1) else {
+        return LogLevel::default();
+    };
+
+    let Ok(log_level) = LogLevel::from_str(log_level) else {
+        return LogLevel::default();
+    };
+
+    log_level
+});
 
 const RED: &str = "\x1b[0;31m";
 const GREEN: &str = "\x1b[0;32m";

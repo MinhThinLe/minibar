@@ -63,7 +63,7 @@ impl From<&Table> for CommonStyle {
 fn parse_border(value: &Value) -> Border {
     let color = value.get("color").map_or(Color::BLACK, |color| {
         color.as_integer().map_or(Color::BLACK, |color| {
-            rgba8_to_color(color.cast_unsigned() as u32)
+            rgba8_to_color(color as u32)
         })
     });
     let width = value

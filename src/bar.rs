@@ -78,7 +78,7 @@ impl Bar {
     pub fn subscription(&self) -> Subscription<BarEvent> {
         let subscriptions = self
             .all_modules()
-            .filter_map(|module| module.subscription());
+            .filter_map(Module::subscription);
 
         Subscription::batch(subscriptions).map(BarEvent::ModuleUpdate)
     }
