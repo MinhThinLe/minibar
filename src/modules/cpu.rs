@@ -67,6 +67,7 @@ impl Module for Cpu {
     where
         Self: Sized,
     {
+        // TODO: Add configuration options for this module
         Some(Rc::new(Self {
             current_core_stats: CoresStat(Vec::new()),
             last_core_stats: CoresStat(Vec::new()),

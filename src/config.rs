@@ -20,32 +20,22 @@ const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 2] = [
 
 impl From<Table> for Bar {
     fn from(value: Table) -> Self {
-        let modules = parse_modules(&value);
+        let module_registry = parse_modules(&value);
         let Some(bar_config) = value.get("bar") else {
             warn("Bar config empty, nothing to do");
-            return Bar {
-                left_modules: Vec::new(),
-                center_modules: Vec::new(),
-                right_modules: Vec::new(),
-                theme: Theme::Dark,
-            };
+            return Bar::default();
         };
 
-        let left_modules = bar_config.get("left_modules").map_or(vec![], |array| {
-            array
-                .as_array()
-                .map_or(vec![], |array| get_module_list(array, &modules))
-        });
-        let center_modules = bar_config.get("center_modules").map_or(vec![], |array| {
-            array
-                .as_array()
-                .map_or(vec![], |array| get_module_list(array, &modules))
-        });
-        let right_modules = bar_config.get("right_modules").map_or(vec![], |array| {
-            array
-                .as_array()
-                .map_or(vec![], |array| get_module_list(array, &modules))
-        });
+        let get_module = |key| -> Option<Vec<Rc<dyn Module>>> {
+            let modules = bar_config.get(key)?;
+            let modules = modules.as_array()?;
+            Some(get_module_list(modules, &module_registry))
+        };
+
+        let left_modules = get_module("left_modules").unwrap_or_default();
+        let center_modules = get_module("center_modules").unwrap_or_default();
+        let right_modules = get_module("right_modules").unwrap_or_default();
+
         let theme = get_theme(&value);
 
         Self {

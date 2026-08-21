@@ -47,9 +47,11 @@ impl From<&Table> for CommonStyle {
         const DEFAULT_BACKGROUND: Color = Color::BLACK;
         const DEFAULT_FOREGROUND: Color = Color::WHITE;
 
-        let padding = value.get("padding").map_or(DEFAULT_PADDING, |value| {
-            parse_padding(value).unwrap_or(DEFAULT_PADDING)
-        });
+        let padding = || -> Option<Padding> {
+            let padding = value.get("padding")?;
+            parse_padding(padding)
+        }().unwrap_or(DEFAULT_PADDING);
+
         let border = value.get("border").map_or(Border::default(), parse_border);
 
         Self {
@@ -62,17 +64,18 @@ impl From<&Table> for CommonStyle {
 }
 
 fn parse_border(value: &Value) -> Border {
-    let color = value.get("color").map_or(Color::BLACK, |color| {
-        color
-            .as_integer()
-            .map_or(Color::BLACK, |color| rgba8_to_color(color as u32))
-    });
-    let width = value
-        .get("width")
-        .map_or(0.0, |width| float_from_value(width).unwrap_or_default());
-    let radius = value
-        .get("radius")
-        .map_or(0.0, |radius| float_from_value(radius).unwrap_or_default());
+    let Some(value) = value.as_table() else {
+        return Border::default();
+    };
+
+    let color = || -> Option<Color> {
+        let color = value.get("color")?;
+        let raw_rgba8 = color.as_integer()?;
+        Some(rgba8_to_color(u32::try_from(raw_rgba8).ok()?))
+    }().unwrap_or(Color::BLACK);
+
+    let width = float_from_table_and_key(value, "width").unwrap_or_default();
+    let radius = float_from_table_and_key(value, "radius").unwrap_or_default();
 
     Border {
         color,
@@ -115,18 +118,10 @@ fn parse_padding(value: &Value) -> Option<Padding> {
 }
 
 fn padding_from_table(value: &Table) -> Padding {
-    let top = value
-        .get("top")
-        .map_or(0.0, |value| float_from_value(value).unwrap_or_default());
-    let right = value
-        .get("right")
-        .map_or(0.0, |value| float_from_value(value).unwrap_or_default());
-    let bottom = value
-        .get("bottom")
-        .map_or(0.0, |value| float_from_value(value).unwrap_or_default());
-    let left = value
-        .get("left")
-        .map_or(0.0, |value| float_from_value(value).unwrap_or_default());
+    let top = float_from_table_and_key(value, "top").unwrap_or_default();
+    let right = float_from_table_and_key(value, "right").unwrap_or_default();
+    let bottom = float_from_table_and_key(value, "bottom").unwrap_or_default();
+    let left = float_from_table_and_key(value, "left").unwrap_or_default();
 
     Padding {
         top,
@@ -154,6 +149,10 @@ fn padding_from_array(value: &Array) -> Option<Padding> {
     }
 
     unreachable!()
+}
+
+fn float_from_table_and_key(value: &Table, index_key: &str) -> Option<f32> {
+    float_from_value(value.get(index_key)?)
 }
 
 fn float_from_value(value: &Value) -> Option<f32> {

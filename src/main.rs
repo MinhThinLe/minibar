@@ -14,7 +14,7 @@ use iced_layershell::settings::{LayerShellSettings, StartMode};
 use iced_layershell::{Settings, application};
 
 use bar::Bar;
-use toml::Table;
+use toml::{Table, Value};
 
 use crate::logger::error;
 
@@ -36,25 +36,25 @@ impl Default for BarParameter {
 
 static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
     let config_file = get_config_location();
-    let Ok(config_content) = fs::read_to_string(config_file) else {
+
+    let Some(bar_config) = || -> Option<Value> {
+        let config_content = fs::read_to_string(&config_file).ok()?;
+        let config_table = config_content.parse::<Table>().ok()?;
+        config_table.get("bar").cloned()
+    }() else {
         return BarParameter::default();
     };
 
-    let Ok(config_table) = config_content.parse::<Table>() else {
-        return BarParameter::default();
-    };
+    let font_name = || -> Option<&str> {
+        let value = bar_config.get("font")?;
+        value.as_str()
+    }().unwrap_or(DEFAULT_FONT_NAME);
 
-    let Some(bar_config) = config_table.get("bar") else {
-        return BarParameter::default();
-    };
-
-    let font_name = bar_config.get("font").map_or(DEFAULT_FONT_NAME, |value| {
-        value.as_str().unwrap_or(DEFAULT_FONT_NAME)
-    });
-
-    let bar_size = bar_config.get("size").map_or(DEFAULT_BAR_SIZE, |value| {
-        value.as_integer().unwrap_or(i64::from(DEFAULT_BAR_SIZE)) as u32
-    });
+    let bar_size = || -> Option<u32> {
+        let value = bar_config.get("size")?;
+        let int = value.as_integer()?;
+        u32::try_from(int).ok()
+    }().unwrap_or(DEFAULT_BAR_SIZE);
 
     BarParameter {
         font_name: font_name.to_string(),
