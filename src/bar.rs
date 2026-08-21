@@ -1,4 +1,5 @@
 use std::fs;
+use std::process::exit;
 use std::rc::Rc;
 
 use iced::Alignment::Center;
@@ -9,7 +10,7 @@ use iced_layershell::to_layer_message;
 use toml::Table;
 
 use crate::get_config_location;
-use crate::logger::info;
+use crate::logger::{error, info, warn};
 use crate::modules::{Module, ModuleUpdate};
 
 pub struct Bar {
@@ -29,13 +30,21 @@ impl Bar {
     pub fn start() -> Self {
         let config = get_config_location();
         info(format!("Using config from {config:?}"));
-        let Ok(config_content) = fs::read_to_string(config) else {
-            panic!("Can't read from config, will properly handle this error later on");
+
+        let config_content = match fs::read_to_string(config) {
+            Ok(content) => content,
+            Err(err) => {
+                error(format!("Could not read from config due to {err}, exiting now"));
+                exit(1)
+            }
         };
 
         let config_table = match config_content.parse::<Table>() {
             Ok(table) => table,
-            Err(error) => panic!("Couldn't parse to toml table due to {error}"),
+            Err(err) => {
+                error(format!("Invalid configuration file, {err}"));
+                exit(1)
+            }
         };
 
         Self::from(config_table)
@@ -53,7 +62,7 @@ impl Bar {
                     .filter(|module| module.type_id() == type_id)
                     .for_each(|module| module.update(module_update.1.clone()));
             }
-            other => println!("Unhandled event: {other:?}"),
+            other => warn(format!("Unhandled event: {other:?}")),
         }
         Task::none()
     }

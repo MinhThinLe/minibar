@@ -134,7 +134,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
         output
             .send(ModuleUpdate(TYPE_ID, Arc::new(content)))
             .await
-            .unwrap();
+            .expect("Broken pipe");
         loop {
             sleep(poll_interval);
             let new_content = read_battery_info();
@@ -146,7 +146,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
             output
                 .send(ModuleUpdate(TYPE_ID, Arc::new(content)))
                 .await
-                .unwrap();
+                .expect("Broken pipe");
             content = new_content;
         }
     })
