@@ -56,15 +56,31 @@ const YELLOW: &str = "\x1b[0;33m";
 const BLUE: &str = "\x1b[0;34m";
 const RESET: &str = "\x1b[0m";
 
+impl Display for LogLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LogLevel::Debug => write!(f, "{BLUE}[Debug]{RESET}: "),
+            LogLevel::Info => write!(f, "{GREEN}[Info]{RESET}: "),
+            LogLevel::Warning => write!(f, "{YELLOW}[Warning]{RESET}: "),
+            LogLevel::Error => write!(f, "{RED}[Error]{RESET}: "),
+        }
+    }
+}
+
+fn generate_message(log_level: LogLevel, message: impl Display) -> String {
+    format!("{log_level}{message}\n")
+}
+
+fn report(message: String) {
+    stderr().write_all(message.as_bytes()).expect("Unable to write to stderr")
+}
+
 #[allow(dead_code)]
 pub fn debug(message: impl Display) {
     if *LOG_LEVEL > LogLevel::Debug {
         return;
     }
-    let message = format!("{BLUE}[Debug]{RESET}: {message}");
-    stderr()
-        .write_all(message.as_bytes())
-        .expect("Logging failed");
+    report(generate_message(LogLevel::Debug, message));
 }
 
 #[allow(dead_code)]
@@ -72,10 +88,7 @@ pub fn info(message: impl Display) {
     if *LOG_LEVEL > LogLevel::Info {
         return;
     }
-    let message = format!("{GREEN}[Info]{RESET}: {message}");
-    stderr()
-        .write_all(message.as_bytes())
-        .expect("Logging failed");
+    report(generate_message(LogLevel::Info, message));
 }
 
 #[allow(dead_code)]
@@ -83,16 +96,10 @@ pub fn warn(message: impl Display) {
     if *LOG_LEVEL > LogLevel::Warning {
         return;
     }
-    let message = format!("{YELLOW}[Warning]{RESET}: {message}");
-    stderr()
-        .write_all(message.as_bytes())
-        .expect("Logging failed");
+    report(generate_message(LogLevel::Warning, message));
 }
 
 #[allow(dead_code)]
 pub fn error(message: impl Display) {
-    let message = format!("{RED}[Error]{RESET}: {message}");
-    stderr()
-        .write_all(message.as_bytes())
-        .expect("Logging failed");
+    report(generate_message(LogLevel::Error, message));
 }

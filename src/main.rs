@@ -3,10 +3,10 @@ mod config;
 mod logger;
 mod modules;
 
-use std::process::exit;
-use std::{env, fs};
 use std::path::PathBuf;
+use std::process::exit;
 use std::sync::LazyLock;
+use std::{env, fs};
 
 use iced::Font;
 use iced_layershell::reexport::Anchor;
@@ -91,18 +91,25 @@ fn get_config_location() -> PathBuf {
     const CONFIG_FILE: &str = "config.toml";
 
     let commandline_args: Vec<String> = env::args().collect();
-    if let Some((index, _item)) = commandline_args.iter().enumerate().find(|(_index, item)| *item == CONFIG_PATH_FLAG) {
-        if let Some(path) = commandline_args.get(index) {
-            return path.into()
+    if let Some((index, _item)) = commandline_args
+        .iter()
+        .enumerate()
+        .find(|(_index, item)| *item == CONFIG_PATH_FLAG)
+    {
+        if let Some(path) = commandline_args.get(index + 1) {
+            return path.into();
         } else {
-            error("--config-file must be followed by a path to a config file, skipping");
+            error("--config-file must be followed by a path to a config file, exiting now");
+            exit(1);
         }
     }
 
     let config_dir = get_config_dir();
     if !config_dir.exists() {
         if let Err(err) = fs::create_dir_all(&config_dir) {
-            error(format!("Unable to create config directory due to {err}, exiting now"));
+            error(format!(
+                "Unable to create config directory due to {err}, exiting now"
+            ));
             exit(1);
         }
     }
@@ -114,13 +121,15 @@ fn get_config_dir() -> PathBuf {
     const CONFIG_DIR: &str = "minibar";
 
     if let Ok(xdg_config_home) = env::var("XDG_CONFIG_HOME") {
-        return PathBuf::from(xdg_config_home).join(CONFIG_DIR)
+        return PathBuf::from(xdg_config_home).join(CONFIG_DIR);
     }
 
     if let Some(home_dir) = env::home_dir() {
         return home_dir.join(".config").join(CONFIG_DIR);
     }
 
-    error("Could not figure out how to get config directory. This issue may be resolved by setting $XDG_CONFIG_HOME or $HOME");
+    error(
+        "Could not figure out how to get config directory. This issue may be resolved by setting $XDG_CONFIG_HOME or $HOME",
+    );
     exit(1)
 }
