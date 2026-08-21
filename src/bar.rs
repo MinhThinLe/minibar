@@ -9,6 +9,7 @@ use iced_layershell::to_layer_message;
 use toml::Table;
 
 use crate::get_config_location;
+use crate::logger::info;
 use crate::modules::{Module, ModuleUpdate};
 
 pub struct Bar {
@@ -27,6 +28,7 @@ pub enum BarEvent {
 impl Bar {
     pub fn start() -> Self {
         let config = get_config_location();
+        info(format!("Using config from {config:?}"));
         let Ok(config_content) = fs::read_to_string(config) else {
             panic!("Can't read from config, will properly handle this error later on");
         };
@@ -76,9 +78,7 @@ impl Bar {
     }
 
     pub fn subscription(&self) -> Subscription<BarEvent> {
-        let subscriptions = self
-            .all_modules()
-            .filter_map(Module::subscription);
+        let subscriptions = self.all_modules().filter_map(Module::subscription);
 
         Subscription::batch(subscriptions).map(BarEvent::ModuleUpdate)
     }
