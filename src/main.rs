@@ -53,7 +53,7 @@ static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
     });
 
     let bar_size = bar_config.get("size").map_or(DEFAULT_BAR_SIZE, |value| {
-        value.as_integer().unwrap_or(DEFAULT_BAR_SIZE as i64) as u32
+        value.as_integer().unwrap_or(i64::from(DEFAULT_BAR_SIZE)) as u32
     });
 
     BarParameter {
@@ -98,20 +98,20 @@ fn get_config_location() -> PathBuf {
     {
         if let Some(path) = commandline_args.get(index + 1) {
             return path.into();
-        } else {
-            error("--config-file must be followed by a path to a config file, exiting now");
-            exit(1);
         }
+
+        error("--config-file must be followed by a path to a config file, exiting now");
+        exit(1);
     }
 
     let config_dir = get_config_dir();
-    if !config_dir.exists() {
-        if let Err(err) = fs::create_dir_all(&config_dir) {
-            error(format!(
-                "Unable to create config directory due to {err}, exiting now"
-            ));
-            exit(1);
-        }
+    if !config_dir.exists()
+        && let Err(err) = fs::create_dir_all(&config_dir)
+    {
+        error(format!(
+            "Unable to create config directory due to {err}, exiting now"
+        ));
+        exit(1);
     }
 
     config_dir.join(CONFIG_FILE)

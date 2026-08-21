@@ -6,7 +6,7 @@ use std::{
     sync::LazyLock,
 };
 
-#[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 enum LogLevel {
     Debug = 0,
     #[default]
@@ -71,8 +71,10 @@ fn generate_message(log_level: LogLevel, message: impl Display) -> String {
     format!("{log_level}{message}\n")
 }
 
-fn report(message: String) {
-    stderr().write_all(message.as_bytes()).expect("Unable to write to stderr")
+fn report(message: &str) {
+    stderr()
+        .write_all(message.as_bytes())
+        .expect("Unable to write to stderr");
 }
 
 #[allow(dead_code)]
@@ -80,7 +82,7 @@ pub fn debug(message: impl Display) {
     if *LOG_LEVEL > LogLevel::Debug {
         return;
     }
-    report(generate_message(LogLevel::Debug, message));
+    report(&generate_message(LogLevel::Debug, message));
 }
 
 #[allow(dead_code)]
@@ -88,7 +90,7 @@ pub fn info(message: impl Display) {
     if *LOG_LEVEL > LogLevel::Info {
         return;
     }
-    report(generate_message(LogLevel::Info, message));
+    report(&generate_message(LogLevel::Info, message));
 }
 
 #[allow(dead_code)]
@@ -96,10 +98,10 @@ pub fn warn(message: impl Display) {
     if *LOG_LEVEL > LogLevel::Warning {
         return;
     }
-    report(generate_message(LogLevel::Warning, message));
+    report(&generate_message(LogLevel::Warning, message));
 }
 
 #[allow(dead_code)]
 pub fn error(message: impl Display) {
-    report(generate_message(LogLevel::Error, message));
+    report(&generate_message(LogLevel::Error, message));
 }

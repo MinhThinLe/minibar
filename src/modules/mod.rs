@@ -1,4 +1,5 @@
 pub mod battery;
+pub mod cpu;
 
 use std::fmt::Debug;
 use std::rc::Rc;

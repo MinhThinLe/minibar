@@ -29,12 +29,14 @@ pub enum BarEvent {
 impl Bar {
     pub fn start() -> Self {
         let config = get_config_location();
-        info(format!("Using config from {config:?}"));
+        info(format!("Using config from {}", config.display()));
 
         let config_content = match fs::read_to_string(config) {
             Ok(content) => content,
             Err(err) => {
-                error(format!("Could not read from config due to {err}, exiting now"));
+                error(format!(
+                    "Could not read from config due to {err}, exiting now"
+                ));
                 exit(1)
             }
         };

@@ -15,7 +15,7 @@ use crate::bar::BarEvent;
 use crate::modules::{CommonStyle, Module, ModuleData, ModuleUpdate};
 
 #[derive(Default, Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BatteryState {
+enum BatteryState {
     Charging,
     Discharging,
     #[default]
@@ -23,13 +23,13 @@ pub enum BatteryState {
 }
 
 #[derive(Default, Clone, Copy, Eq, PartialEq, Debug)]
-pub struct BatteryStatus {
+struct BatteryStatus {
     pub percentage: u8,
     pub state: BatteryState,
 }
 
 #[derive(Debug, Default)]
-pub struct BatteryConfig {
+struct BatteryConfig {
     format: Box<str>,
 }
 

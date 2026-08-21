@@ -6,15 +6,16 @@ use toml::{Table, Value, value::Array};
 use crate::{
     bar::Bar,
     logger::{error, warn},
-    modules::{Module, battery::Battery},
+    modules::{Module, battery::Battery, cpu::Cpu},
 };
 
 type ModuleFactoryFunction = fn(&Table) -> Option<Rc<dyn Module>>;
 type ModuleInternalName = &'static str;
 
-const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 1] = [
+const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 2] = [
     // Module name   Module implementation
     ("battery", <Battery as Module>::try_new),
+    ("cpu", <Cpu as Module>::try_new),
 ];
 
 impl From<Table> for Bar {

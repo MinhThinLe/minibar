@@ -2,10 +2,13 @@
 font = "JetBrainsMono NFM"
 size = 32
 left_modules = [
-    "battery"
+    "battery",
+    "cpu"
 ]
 
 background = 0xff00ff00
 
 [battery]
 format = "BAT {percentage}%"
+
+[cpu]
