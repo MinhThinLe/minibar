@@ -48,13 +48,15 @@ static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
     let font_name = || -> Option<&str> {
         let value = bar_config.get("font")?;
         value.as_str()
-    }().unwrap_or(DEFAULT_FONT_NAME);
+    }()
+    .unwrap_or(DEFAULT_FONT_NAME);
 
     let bar_size = || -> Option<u32> {
         let value = bar_config.get("size")?;
         let int = value.as_integer()?;
         u32::try_from(int).ok()
-    }().unwrap_or(DEFAULT_BAR_SIZE);
+    }()
+    .unwrap_or(DEFAULT_BAR_SIZE);
 
     BarParameter {
         font_name: font_name.to_string(),

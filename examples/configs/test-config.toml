@@ -10,5 +10,3 @@ background = 0xff00ff00
 
 [battery]
 format = "BAT {percentage}%"
-
-[cpu]

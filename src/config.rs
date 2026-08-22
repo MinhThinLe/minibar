@@ -9,13 +9,13 @@ use crate::{
     modules::{Module, battery::Battery, cpu::Cpu},
 };
 
-type ModuleFactoryFunction = fn(&Table) -> Option<Rc<dyn Module>>;
+type ModuleFactoryFunction = fn(&Table) -> Rc<dyn Module>;
 type ModuleInternalName = &'static str;
 
 const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 2] = [
     // Module name   Module implementation
-    ("battery", <Battery as Module>::try_new),
-    ("cpu", <Cpu as Module>::try_new),
+    ("battery", <Battery as Module>::new_or_default),
+    ("cpu", <Cpu as Module>::new_or_default),
 ];
 
 impl From<Table> for Bar {
@@ -67,23 +67,26 @@ fn get_module_list(
 }
 
 fn parse_modules(table: &Table) -> HashMap<String, Rc<dyn Module>> {
-    let mut modules = HashMap::new();
+    let mut modules: HashMap<String, Rc<dyn Module>> = FACTORY_FUNCTIONS
+        .iter()
+        .map(|(module_name, init_function)| (module_name.to_string(), init_function(&Table::new())))
+        .collect();
 
     for (key, value) in table {
         if key == "bar" {
             continue;
         }
-        let (module_name, init_function) = FACTORY_FUNCTIONS
+        let (_module_name, init_function) = FACTORY_FUNCTIONS
             .iter()
             .find(|func| func.0 == key)
             .expect("Implement custom modules");
 
-        assert!(value.is_table(), "Value has to be a table");
-        if let Some(module) = init_function(value.as_table().unwrap()) {
-            modules.insert(module_name.to_string(), module);
-        } else {
-            error(format!("Parsing module {module_name} failed")); // TODO: handle this error
-        }
+        let Some(table) = value.as_table() else {
+            error(format!("item {key} must be a table, skipping"));
+            continue;
+        };
+
+        modules.insert(key.to_string(), init_function(table));
     }
 
     modules

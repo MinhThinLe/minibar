@@ -63,15 +63,15 @@ impl Module for Cpu {
         Some(Subscription::run(worker))
     }
 
-    fn try_new(table: &toml::Table) -> Option<std::rc::Rc<dyn Module>>
+    fn new_or_default(table: &toml::Table) -> Rc<dyn Module>
     where
         Self: Sized,
     {
         // TODO: Add configuration options for this module
-        Some(Rc::new(Self {
+        Rc::new(Self {
             current_core_stats: CoresStat(Vec::new()),
             last_core_stats: CoresStat(Vec::new()),
-        }))
+        })
     }
 }
 

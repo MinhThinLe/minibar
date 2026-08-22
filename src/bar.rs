@@ -115,14 +115,13 @@ impl Bar {
     }
 }
 
-
 impl Default for Bar {
     fn default() -> Self {
-       Bar {
+        Bar {
             left_modules: Vec::new(),
             center_modules: Vec::new(),
             right_modules: Vec::new(),
             theme: Theme::Dark,
-       } 
+        }
     }
 }

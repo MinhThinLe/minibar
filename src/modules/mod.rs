@@ -36,7 +36,7 @@ pub trait Module: DowncastSync + Debug {
     fn update(&mut self, update_data: Arc<dyn ModuleData>);
     fn view(&self) -> Element<'_, BarEvent>;
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>>;
-    fn try_new(table: &Table) -> Option<Rc<dyn Module>>
+    fn new_or_default(table: &Table) -> Rc<dyn Module>
     where
         Self: Sized;
 }
@@ -50,7 +50,8 @@ impl From<&Table> for CommonStyle {
         let padding = || -> Option<Padding> {
             let padding = value.get("padding")?;
             parse_padding(padding)
-        }().unwrap_or(DEFAULT_PADDING);
+        }()
+        .unwrap_or(DEFAULT_PADDING);
 
         let border = value.get("border").map_or(Border::default(), parse_border);
 
@@ -72,7 +73,8 @@ fn parse_border(value: &Value) -> Border {
         let color = value.get("color")?;
         let raw_rgba8 = color.as_integer()?;
         Some(rgba8_to_color(u32::try_from(raw_rgba8).ok()?))
-    }().unwrap_or(Color::BLACK);
+    }()
+    .unwrap_or(Color::BLACK);
 
     let width = float_from_table_and_key(value, "width").unwrap_or_default();
     let radius = float_from_table_and_key(value, "radius").unwrap_or_default();
