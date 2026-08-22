@@ -13,3 +13,9 @@ format = "BAT {percentage}%"
 border = {
     radius = 20
 }
+
+[cpu]
+format = "This line was read from config"
+border = {
+    radius = 20
+}

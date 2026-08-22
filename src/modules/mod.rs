@@ -25,8 +25,8 @@ impl Debug for ModuleUpdate {
 pub struct CommonStyle {
     pub padding: Padding,
     pub border: Border,
-    pub background: Color,
-    pub foreground: Color,
+    pub background: Option<Color>,
+    pub foreground: Option<Color>,
 }
 
 pub trait ModuleData: DowncastSync {}
@@ -44,8 +44,6 @@ pub trait Module: DowncastSync + Debug {
 impl From<&Table> for CommonStyle {
     fn from(value: &Table) -> Self {
         const DEFAULT_PADDING: Padding = Padding::ZERO;
-        const DEFAULT_BACKGROUND: Color = Color::BLACK;
-        const DEFAULT_FOREGROUND: Color = Color::WHITE;
 
         let padding = || -> Option<Padding> {
             let padding = value.get("padding")?;
@@ -58,8 +56,8 @@ impl From<&Table> for CommonStyle {
         Self {
             padding,
             border,
-            background: DEFAULT_BACKGROUND,
-            foreground: DEFAULT_FOREGROUND,
+            background: None,
+            foreground: None,
         }
     }
 }

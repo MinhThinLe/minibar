@@ -86,7 +86,7 @@ fn parse_modules(table: &Table) -> HashMap<String, Rc<dyn Module>> {
             continue;
         };
 
-        modules.insert(key.to_string(), init_function(table));
+        modules.insert(key.clone(), init_function(table));
     }
 
     modules

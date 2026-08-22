@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
-use iced::{Color, Element, Subscription, stream};
+use iced::{Background, Color, Element, Subscription, stream};
 use toml::Table;
 
 use crate::bar::BarEvent;
@@ -17,7 +17,6 @@ use crate::modules::{CommonStyle, Module, ModuleData, ModuleUpdate, rgba8_to_col
 
 const DEFAULT_FORMAT: &str = "{percentage}%";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 0;
-const DEFAULT_CRITICAL_COLOR: Color = Color::from_rgb(1.0, 0.0, 0.0);
 
 #[derive(Default, Clone, Copy, Debug, Eq, PartialEq)]
 enum BatteryState {
@@ -37,7 +36,7 @@ struct BatteryStatus {
 struct BatteryConfig {
     format: Box<str>,
     critical_threshold: u8,
-    critical_foreground: Color,
+    critical_foreground: Option<Color>,
 }
 
 #[derive(Debug)]
@@ -69,12 +68,16 @@ impl Battery {
             .replace(PERCENTAGE, &self.status.percentage.to_string())
     }
 
-    fn get_color(&self) -> Color {
+    fn get_color(&self) -> Option<Color> {
         if self.status.percentage <= self.config.critical_threshold {
-            return self.config.critical_foreground;
+            return self.config.critical_foreground
         }
 
         self.style.foreground
+    }
+
+    fn get_background(&self) -> Option<Background> {
+        Some(Background::Color(self.style.background?))
     }
 }
 
@@ -83,8 +86,8 @@ impl Module for Battery {
         container(text(self.get_text()))
             .padding(self.style.padding)
             .style(|_idk| container::Style {
-                text_color: Some(self.get_color()),
-                background: Some(iced::Background::Color(self.style.background)),
+                text_color: self.get_color(),
+                background: self.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -117,11 +120,11 @@ impl Module for Battery {
             let threshold = threshold.as_integer()?;
             if threshold >= 100 {
                 warn("Setting critical threshold to 100 or above makes it useless");
-                None?
+                None?;
             }
             if threshold < 0 {
                 warn("Setting critical threshold to below 0 makes it useless");
-                None?
+                None?;
             }
             u8::try_from(threshold).ok()
         }()
@@ -132,8 +135,7 @@ impl Module for Battery {
             let foreground = foreground.as_integer()?;
             let raw_rgba8 = u32::try_from(foreground).ok()?;
             Some(rgba8_to_color(raw_rgba8))
-        }()
-        .unwrap_or(DEFAULT_CRITICAL_COLOR);
+        }();
 
         let style = CommonStyle::from(table);
 
