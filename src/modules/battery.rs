@@ -16,7 +16,7 @@ use crate::logger::warn;
 use crate::modules::{CommonStyle, Module, ModuleData, ModuleUpdate, rgba8_to_color};
 
 const DEFAULT_FORMAT: &str = "{percentage}%";
-const DEFAULT_CRITICAL_THRESHOLD: u8 = u8::MAX;
+const DEFAULT_CRITICAL_THRESHOLD: u8 = 0;
 const DEFAULT_CRITICAL_COLOR: Color = Color::from_rgb(1.0, 0.0, 0.0);
 
 #[derive(Default, Clone, Copy, Debug, Eq, PartialEq)]
@@ -73,14 +73,21 @@ impl Battery {
         if self.status.percentage <= self.config.critical_threshold {
             return self.config.critical_foreground;
         }
+
         self.style.foreground
     }
 }
 
 impl Module for Battery {
     fn view(&self) -> Element<'_, BarEvent> {
-        container(text(self.get_text()).color(self.get_color()))
+        container(text(self.get_text()))
             .padding(self.style.padding)
+            .style(|_idk| container::Style {
+                text_color: Some(self.get_color()),
+                background: Some(iced::Background::Color(self.style.background)),
+                border: self.style.border,
+                ..Default::default()
+            })
             .into()
     }
 

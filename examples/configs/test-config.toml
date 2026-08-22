@@ -6,7 +6,10 @@ left_modules = [
     "cpu"
 ]
 
-background = 0xff00ff00
+background = 0xffffff00
 
 [battery]
 format = "BAT {percentage}%"
+border = {
+    radius = 20
+}
