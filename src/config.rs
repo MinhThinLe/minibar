@@ -20,12 +20,12 @@ const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 2] = [
 
 impl From<&Table> for Bar {
     fn from(value: &Table) -> Self {
-        let module_registry = parse_modules(&value);
         let Some(bar_config) = value.get("bar") else {
             warn("Bar config empty, nothing to do");
             return Bar::default();
         };
 
+        let module_registry = parse_modules(&value);
         let get_module = |key| -> Option<Vec<Rc<dyn Module>>> {
             let modules = bar_config.get(key)?;
             let modules = modules.as_array()?;
