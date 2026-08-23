@@ -18,8 +18,8 @@ const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 2] = [
     ("cpu", <Cpu as Module>::new_or_default),
 ];
 
-impl From<Table> for Bar {
-    fn from(value: Table) -> Self {
+impl From<&Table> for Bar {
+    fn from(value: &Table) -> Self {
         let module_registry = parse_modules(&value);
         let Some(bar_config) = value.get("bar") else {
             warn("Bar config empty, nothing to do");
@@ -142,6 +142,6 @@ mod test {
     #[test]
     fn test_config_parsing() {
         let table = TEST_CONFIG_FILE.parse::<Table>().unwrap();
-        let bar = Bar::from(table);
+        let bar = Bar::from(&table);
     }
 }

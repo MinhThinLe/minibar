@@ -13,10 +13,10 @@ use iced_layershell::reexport::Anchor;
 use iced_layershell::settings::{LayerShellSettings, StartMode};
 use iced_layershell::{Settings, application};
 
-use bar::Bar;
 use toml::Table;
 
-use crate::logger::error;
+use bar::Bar;
+use logger::{error, info};
 
 struct BarParameter {
     font_name: &'static str,
@@ -25,17 +25,15 @@ struct BarParameter {
 
 const DEFAULT_BAR_SIZE: u32 = 32;
 const DEFAULT_FONT_NAME: &str = "monospace";
-impl Default for BarParameter {
-    fn default() -> Self {
-        Self {
-            font_name: DEFAULT_FONT_NAME,
-            bar_size: DEFAULT_BAR_SIZE,
-        }
-    }
-}
 
+// Cramming the configuration table inside a lazy lock makes hot reloading config impossible but it
+// allows me to side step a few problems such as not being able to adjust the bar's height and default
+// font at runtime. The latter could be solved by parsing the config file before the bar launches
+// but that also requires parsing the same config file twice.
 pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     let config_file = get_config_location();
+    info(format!("Using config from {}", config_file.display()));
+
     let Ok(content) = fs::read_to_string(config_file) else {
         return Table::default();
     };
@@ -65,6 +63,15 @@ static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
         bar_size,
     }
 });
+
+impl Default for BarParameter {
+    fn default() -> Self {
+        Self {
+            font_name: DEFAULT_FONT_NAME,
+            bar_size: DEFAULT_BAR_SIZE,
+        }
+    }
+}
 
 fn main() -> iced_layershell::Result {
     let start_mode = StartMode::Active;

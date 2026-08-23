@@ -1,5 +1,3 @@
-use std::fs;
-use std::process::exit;
 use std::rc::Rc;
 
 use iced::Alignment::Center;
@@ -7,10 +5,9 @@ use iced::Length::Fill;
 use iced::widget::{container, row};
 use iced::{Element, Subscription, Task, Theme};
 use iced_layershell::to_layer_message;
-use toml::Table;
 
-use crate::get_config_location;
-use crate::logger::{error, info, warn};
+use crate::CONFIG;
+use crate::logger::warn;
 use crate::modules::{Module, ModuleUpdate};
 
 pub struct Bar {
@@ -28,28 +25,7 @@ pub enum BarEvent {
 
 impl Bar {
     pub fn start() -> Self {
-        let config = get_config_location();
-        info(format!("Using config from {}", config.display()));
-
-        let config_content = match fs::read_to_string(config) {
-            Ok(content) => content,
-            Err(err) => {
-                error(format!(
-                    "Could not read from config due to {err}, exiting now"
-                ));
-                exit(1)
-            }
-        };
-
-        let config_table = match config_content.parse::<Table>() {
-            Ok(table) => table,
-            Err(err) => {
-                error(format!("Invalid configuration file, {err}"));
-                exit(1)
-            }
-        };
-
-        Self::from(config_table)
+        Self::from(&*CONFIG)
     }
 
     pub fn namespace() -> String {
