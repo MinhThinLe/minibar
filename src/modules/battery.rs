@@ -4,7 +4,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread::sleep;
-use std::time::Duration;
 
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
@@ -13,7 +12,9 @@ use toml::Table;
 
 use crate::bar::BarEvent;
 use crate::logger::warn;
-use crate::modules::{CommonStyle, Module, ModuleData, ModuleUpdate, rgba8_to_color};
+use crate::modules::{
+    CommonStyle, Module, ModuleData, ModuleUpdate, get_poll_interval, rgba8_to_color,
+};
 
 const DEFAULT_FORMAT: &str = "{percentage}%";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 0;
@@ -70,7 +71,7 @@ impl Battery {
 
     fn get_color(&self) -> Option<Color> {
         if self.status.percentage <= self.config.critical_threshold {
-            return self.config.critical_foreground
+            return self.config.critical_foreground;
         }
 
         self.style.foreground
@@ -177,8 +178,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
     const TYPE_ID: TypeId = TypeId::of::<Battery>();
 
     stream::channel(0, async |mut output| {
-        let poll_interval = Duration::from_millis(500);
-
+        let poll_interval = get_poll_interval("battery");
         let mut content = read_battery_info();
         output
             .send(ModuleUpdate(TYPE_ID, Arc::new(content)))

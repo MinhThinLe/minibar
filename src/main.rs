@@ -14,12 +14,12 @@ use iced_layershell::settings::{LayerShellSettings, StartMode};
 use iced_layershell::{Settings, application};
 
 use bar::Bar;
-use toml::{Table, Value};
+use toml::Table;
 
 use crate::logger::error;
 
 struct BarParameter {
-    font_name: String,
+    font_name: &'static str,
     bar_size: u32,
 }
 
@@ -28,20 +28,22 @@ const DEFAULT_FONT_NAME: &str = "monospace";
 impl Default for BarParameter {
     fn default() -> Self {
         Self {
-            font_name: DEFAULT_FONT_NAME.to_string(),
+            font_name: DEFAULT_FONT_NAME,
             bar_size: DEFAULT_BAR_SIZE,
         }
     }
 }
 
-static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
+pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     let config_file = get_config_location();
+    let Ok(content) = fs::read_to_string(config_file) else {
+        return Table::default();
+    };
+    content.parse::<Table>().unwrap_or_default()
+});
 
-    let Some(bar_config) = || -> Option<Value> {
-        let config_content = fs::read_to_string(&config_file).ok()?;
-        let config_table = config_content.parse::<Table>().ok()?;
-        config_table.get("bar").cloned()
-    }() else {
+static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
+    let Some(bar_config) = CONFIG.get("bar") else {
         return BarParameter::default();
     };
 
@@ -59,7 +61,7 @@ static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
     .unwrap_or(DEFAULT_BAR_SIZE);
 
     BarParameter {
-        font_name: font_name.to_string(),
+        font_name,
         bar_size,
     }
 });
@@ -83,7 +85,7 @@ fn main() -> iced_layershell::Result {
     application(Bar::start, Bar::namespace, Bar::update, Bar::view)
         .settings(settings)
         .subscription(Bar::subscription)
-        .default_font(Font::with_name(&BAR_PARAMETER.font_name))
+        .default_font(Font::with_name(BAR_PARAMETER.font_name))
         .theme(Bar::theme)
         .run()
 }

@@ -5,7 +5,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread::sleep;
-use std::time::Duration;
 
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
@@ -169,7 +168,7 @@ impl Cpu {
     fn get_color(&self) -> Option<Color> {
         let foreground = self.style.foreground?;
         if self.measure_core_load(CoreId::All) < self.config.critical_threshold {
-            return Some(foreground)
+            return Some(foreground);
         }
         self.config.critical_foreground
     }
@@ -250,7 +249,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
     const MODULE_ID: TypeId = TypeId::of::<Cpu>();
 
     stream::channel(0, async |mut output| {
-        let poll_interval = Duration::from_secs(1);
+        let poll_interval = get_poll_interval("cpu");
 
         output
             .send(ModuleUpdate(MODULE_ID, Arc::new(measure())))

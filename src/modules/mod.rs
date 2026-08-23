@@ -3,6 +3,7 @@ pub mod cpu;
 
 use std::fmt::Debug;
 use std::rc::Rc;
+use std::time::Duration;
 use std::{any::TypeId, sync::Arc};
 
 use downcast_rs::{DowncastSync, impl_downcast};
@@ -11,7 +12,10 @@ use iced::{Border, Color, Element, Padding, Subscription};
 use toml::value::Array;
 use toml::{Table, Value};
 
+use crate::CONFIG;
 use crate::bar::BarEvent;
+
+const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 pub struct ModuleUpdate(pub TypeId, pub Arc<dyn ModuleData>);
 
@@ -60,6 +64,15 @@ impl From<&Table> for CommonStyle {
             foreground: None,
         }
     }
+}
+
+fn get_poll_interval(module_name: &str) -> Duration {
+    || -> Option<Duration> {
+        let module = CONFIG.get(module_name)?;
+        let poll_interval = module.get("poll_interval")?;
+        let poll_interval = poll_interval.as_integer()?;
+        Some(Duration::from_millis(poll_interval.cast_unsigned()))
+    }().unwrap_or(DEFAULT_POLL_INTERVAL)
 }
 
 fn parse_border(value: &Value) -> Border {

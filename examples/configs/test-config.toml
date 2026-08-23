@@ -10,6 +10,7 @@ background = 0xffffff00
 
 [battery]
 format = "BAT {percentage}%"
+poll_interval = 1000 # amount of time to wait between polls in milisecond
 border = {
     radius = 20
 }
