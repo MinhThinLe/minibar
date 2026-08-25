@@ -5,7 +5,7 @@ use std::os::unix::net::UnixStream;
 
 use serde_json::Value;
 
-use crate::logger::{error, info};
+use crate::logger::error;
 
 use super::{CompositorEvent, IpcBackend, Workspace};
 
@@ -48,10 +48,8 @@ impl IpcBackend for NiriIpcBackend {
         }
 
         if let Err(reason) = receiver.get_mut().shutdown(Shutdown::Write) {
-            error(format!(
-                "Could not establish a clean connection to Niri due to {reason}"
-            ))
-        };
+            error(format!( "Could not establish a clean connection to Niri due to {reason}"));
+        }
 
         Some(Self {
             buffer: String::new(),
@@ -96,7 +94,7 @@ fn workspaces_changed(workspaces: &Value) -> Option<CompositorEvent> {
     for workspace in workspaces {
         let id = workspace.get("id")?.as_i64()?.cast_unsigned();
         let idx = workspace.get("idx")?.as_i64()? as u8;
-        let name = workspace.get("name")?.as_str().map(|str| str.to_string());
+        let name = workspace.get("name")?.as_str().map(ToString::to_string);
         let is_focused = workspace.get("is_focused")?.as_bool()?;
 
         let workspace = Workspace {
@@ -108,7 +106,7 @@ fn workspaces_changed(workspaces: &Value) -> Option<CompositorEvent> {
         workspace_list.push(workspace);
     }
 
-    workspace_list.sort_by(|workspace_1, workspace_2| workspace_1.idx.cmp(&workspace_2.idx));
+    workspace_list.sort_by_key(|workspace| workspace.idx);
 
     Some(CompositorEvent::WorkspacesChanged(workspace_list))
 }

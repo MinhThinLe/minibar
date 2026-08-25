@@ -72,10 +72,10 @@ impl Default for BarParameter {
 
 fn main() -> iced::Result {
     let settings = iced::Settings {
-        id: None,
+        id: Some("minibar".to_string()),
         default_font: Font::with_name(DEFAULT_FONT_NAME),
         exit_on_close_request: false,
-        is_daemon: false,
+        is_daemon: true,
         ..Default::default()
     };
     daemon(Bar::start, Bar::update, Bar::view)

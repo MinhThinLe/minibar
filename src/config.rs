@@ -5,7 +5,7 @@ use toml::{Table, Value, value::Array};
 
 use crate::bar::Bar;
 use crate::logger::{error, warn};
-use crate::modules::modules::*;
+use crate::modules::reexports::*;
 
 type ModuleFactoryFunction = fn(&Table) -> Rc<dyn Module>;
 type ModuleInternalName = &'static str;
@@ -24,7 +24,7 @@ impl From<&Table> for Bar {
             return Bar::default();
         };
 
-        let module_registry = parse_modules(&value);
+        let module_registry = parse_modules(value);
         let get_module = |key| -> Option<Vec<Rc<dyn Module>>> {
             let modules = bar_config.get(key)?;
             let modules = modules.as_array()?;
@@ -35,7 +35,7 @@ impl From<&Table> for Bar {
         let center_modules = get_module("center_modules").unwrap_or_default();
         let right_modules = get_module("right_modules").unwrap_or_default();
 
-        let theme = get_theme(&value);
+        let theme = get_theme(value);
 
         Self {
             left_modules,

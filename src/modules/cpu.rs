@@ -12,7 +12,7 @@ use iced::{Background, Color, Subscription, stream};
 
 use crate::modules::*;
 
-const DEFAULT_FORMAT: &str = "CPU: {utilization}";
+const DEFAULT_FORMAT: &str = "CPU: {usage}";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 100;
 
 #[derive(Clone)]
@@ -64,6 +64,7 @@ impl Default for CpuConfig {
 impl Module for Cpu {
     fn view(&self) -> iced::Element<'_, crate::bar::BarEvent> {
         container(text(self.get_text()))
+            .padding(self.style.padding)
             .style(|_old_style| container::Style {
                 text_color: self.get_color(),
                 background: self.get_background(),

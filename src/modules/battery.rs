@@ -16,7 +16,7 @@ use crate::modules::{
     CommonStyle, Module, ModuleData, ModuleUpdate, get_poll_interval, rgba8_to_color,
 };
 
-const DEFAULT_FORMAT: &str = "{percentage}%";
+const DEFAULT_FORMAT: &str = "BAT: {percentage}%";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 0;
 
 #[derive(Default, Clone, Copy, Debug, Eq, PartialEq)]

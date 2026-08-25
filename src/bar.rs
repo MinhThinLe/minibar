@@ -30,7 +30,7 @@ pub struct Bar {
 pub struct Output {
     display: WlOutput,
     info: Option<OutputInfo>,
-    output_id: Id,
+    id: Id,
 }
 
 #[derive(Debug, Clone)]
@@ -118,7 +118,7 @@ impl Bar {
             OutputEvent::Created(maybe_info) => {
                 let output_id = Id::unique();
                 let output = Output {
-                    output_id,
+                    id: output_id,
                     display: wl_display.clone(),
                     info: maybe_info,
                 };
@@ -140,7 +140,7 @@ impl Bar {
                     .iter()
                     .position(|output| output.display == wl_display);
                 if let Some(position) = position {
-                    self.outputs.get_mut(position).unwrap().info = Some(new_info)
+                    self.outputs.get_mut(position).unwrap().info = Some(new_info);
                 }
             }
         }

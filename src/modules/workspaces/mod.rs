@@ -58,9 +58,9 @@ impl Module for Workspaces {
             .expect("Why is this event routed here?");
 
         match event {
-            CompositorEvent::WorkspacesChanged(workspaces) => self.workspaces = workspaces.to_vec(),
+            CompositorEvent::WorkspacesChanged(workspaces) => self.workspaces.clone_from(workspaces),
             CompositorEvent::WorkspaceActivated(changed_workspace) => {
-                self.change_workspace(changed_workspace)
+                self.change_workspace(changed_workspace);
             }
         }
     }
@@ -86,7 +86,7 @@ impl Module for Workspaces {
 impl Workspaces {
     fn change_workspace(&mut self, new_workspace: &Workspace) {
         if !new_workspace.is_focused {
-            println!("WHAT")
+            println!("WHAT");
         }
         self.workspaces
             .iter_mut()
@@ -132,7 +132,7 @@ impl Workspace {
 
 fn try_create_backend() -> Option<Box<dyn IpcBackend>> {
     if let Some(niri) = <NiriIpcBackend as IpcBackend>::try_create() {
-        info(format!("[Workspaces] using Niri backend"));
+        info("[Workspaces] using Niri backend");
         return Some(Box::new(niri));
     }
 

@@ -16,7 +16,7 @@ use toml::{Table, Value};
 use crate::CONFIG;
 use crate::bar::BarEvent;
 
-pub mod modules {
+pub mod reexports {
     pub use super::Module;
     pub use super::battery::Battery;
     pub use super::cpu::Cpu;
@@ -66,11 +66,14 @@ impl From<&Table> for CommonStyle {
 
         let border = value.get("border").map_or(Border::default(), parse_border);
 
+        let background = toml_to_color(value, "background");
+        let foreground = toml_to_color(value, "foreground");
+
         Self {
             padding,
             border,
-            background: None,
-            foreground: None,
+            background,
+            foreground,
         }
     }
 }
@@ -90,13 +93,7 @@ fn parse_border(value: &Value) -> Border {
         return Border::default();
     };
 
-    let color = || -> Option<Color> {
-        let color = value.get("color")?;
-        let raw_rgba8 = color.as_integer()?;
-        Some(rgba8_to_color(u32::try_from(raw_rgba8).ok()?))
-    }()
-    .unwrap_or(Color::BLACK);
-
+    let color = toml_to_color(value, "color") .unwrap_or(Color::BLACK);
     let width = float_from_table_and_key(value, "width").unwrap_or_default();
     let radius = float_from_table_and_key(value, "radius").unwrap_or_default();
 
@@ -105,6 +102,12 @@ fn parse_border(value: &Value) -> Border {
         width,
         radius: Radius::from(radius),
     }
+}
+
+fn toml_to_color(value: &Table, property_name: &str) -> Option<Color> {
+    let color = value.get(property_name)?;
+    let raw_rgba8 = color.as_integer()?;
+    Some(rgba8_to_color(u32::try_from(raw_rgba8).ok()?))
 }
 
 fn rgba8_to_color(raw: u32) -> Color {
