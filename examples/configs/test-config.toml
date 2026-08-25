@@ -3,7 +3,8 @@ font = "JetBrainsMono NFM"
 size = 32
 left_modules = [
     "battery",
-    "cpu"
+    "cpu",
+    "workspaces"
 ]
 
 background = 0xffffff00

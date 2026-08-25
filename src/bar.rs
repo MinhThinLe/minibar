@@ -18,7 +18,7 @@ pub struct Bar {
 }
 
 #[to_layer_message]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BarEvent {
     ModuleUpdate(ModuleUpdate),
 }

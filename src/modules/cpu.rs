@@ -15,7 +15,7 @@ use crate::modules::*;
 const DEFAULT_FORMAT: &str = "CPU: {utilization}";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 100;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct CoreStat {
     // These fields can never be negative but it makes subtractions hell of a lot easier
     all: i64,
@@ -25,7 +25,7 @@ struct CoreStat {
     total: i64,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Clone)]
 struct CoresStat(Vec<CoreStat>);
 
 #[derive(Debug, Clone, Copy)]
@@ -35,14 +35,13 @@ enum CoreId {
     Core(u8),
 }
 
-#[derive(Debug)]
 struct CpuConfig {
     format: Box<str>,
     critical_threshold: u8,
     critical_foreground: Option<Color>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Cpu {
     current_core_stats: CoresStat,
     last_core_stats: CoresStat,

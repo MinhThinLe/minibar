@@ -3,19 +3,18 @@ use std::{collections::HashMap, rc::Rc};
 use iced::Theme;
 use toml::{Table, Value, value::Array};
 
-use crate::{
-    bar::Bar,
-    logger::{error, warn},
-    modules::{Module, battery::Battery, cpu::Cpu},
-};
+use crate::bar::Bar;
+use crate::logger::{error, warn};
+use crate::modules::modules::*;
 
 type ModuleFactoryFunction = fn(&Table) -> Rc<dyn Module>;
 type ModuleInternalName = &'static str;
 
-const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 2] = [
+const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 3] = [
     // Module name   Module implementation
     ("battery", <Battery as Module>::new_or_default),
     ("cpu", <Cpu as Module>::new_or_default),
+    ("workspaces", <Workspaces as Module>::new_or_default),
 ];
 
 impl From<&Table> for Bar {

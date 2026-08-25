@@ -1,5 +1,6 @@
-pub mod battery;
-pub mod cpu;
+mod battery;
+mod cpu;
+mod workspaces;
 
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -15,8 +16,16 @@ use toml::{Table, Value};
 use crate::CONFIG;
 use crate::bar::BarEvent;
 
+pub mod modules {
+    pub use super::Module;
+    pub use super::battery::Battery;
+    pub use super::cpu::Cpu;
+    pub use super::workspaces::Workspaces;
+}
+
 const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(1);
 
+#[derive(Clone)]
 pub struct ModuleUpdate(pub TypeId, pub Arc<dyn ModuleData>);
 
 impl Debug for ModuleUpdate {
@@ -36,7 +45,7 @@ pub struct CommonStyle {
 pub trait ModuleData: DowncastSync {}
 impl_downcast!(sync ModuleData);
 
-pub trait Module: DowncastSync + Debug {
+pub trait Module: DowncastSync {
     fn update(&mut self, update_data: Arc<dyn ModuleData>);
     fn view(&self) -> Element<'_, BarEvent>;
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>>;
@@ -72,7 +81,8 @@ fn get_poll_interval(module_name: &str) -> Duration {
         let poll_interval = module.get("poll_interval")?;
         let poll_interval = poll_interval.as_integer()?;
         Some(Duration::from_millis(poll_interval.cast_unsigned()))
-    }().unwrap_or(DEFAULT_POLL_INTERVAL)
+    }()
+    .unwrap_or(DEFAULT_POLL_INTERVAL)
 }
 
 fn parse_border(value: &Value) -> Border {

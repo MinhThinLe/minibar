@@ -33,14 +33,12 @@ struct BatteryStatus {
     pub state: BatteryState,
 }
 
-#[derive(Debug)]
 struct BatteryConfig {
     format: Box<str>,
     critical_threshold: u8,
     critical_foreground: Option<Color>,
 }
 
-#[derive(Debug)]
 pub struct Battery {
     status: BatteryStatus,
     config: BatteryConfig,
