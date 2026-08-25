@@ -29,7 +29,7 @@ pub struct Bar {
 #[derive(Clone)]
 pub struct Output {
     display: WlOutput,
-    info: Option<OutputInfo>,
+    pub info: Option<OutputInfo>,
     id: Id,
 }
 
@@ -66,15 +66,24 @@ impl Bar {
             .find(|output| output.id == _window_id)
             .expect("Trying to use a WlOutput before initializing it");
 
-        let left_modules = row(self.left_modules.iter().map(|module| module.view(&current_output)))
-            .height(Fill)
-            .align_y(Center);
-        let center_modules = row(self.center_modules.iter().map(|module| module.view(&current_output)))
-            .height(Fill)
-            .align_y(Center);
-        let right_modules = row(self.right_modules.iter().map(|module| module.view(&current_output)))
-            .height(Fill)
-            .align_y(Center);
+        let left_modules = row(self
+            .left_modules
+            .iter()
+            .map(|module| module.view(&current_output)))
+        .height(Fill)
+        .align_y(Center);
+        let center_modules = row(self
+            .center_modules
+            .iter()
+            .map(|module| module.view(&current_output)))
+        .height(Fill)
+        .align_y(Center);
+        let right_modules = row(self
+            .right_modules
+            .iter()
+            .map(|module| module.view(&current_output)))
+        .height(Fill)
+        .align_y(Center);
 
         row![
             container(left_modules).align_left(Fill),

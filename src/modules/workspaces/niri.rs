@@ -98,12 +98,14 @@ fn workspaces_changed(workspaces: &Value) -> Option<CompositorEvent> {
         let idx = workspace.get("idx")?.as_i64()? as u8;
         let name = workspace.get("name")?.as_str().map(ToString::to_string);
         let is_focused = workspace.get("is_focused")?.as_bool()?;
+        let output = workspace.get("output")?.as_str()?.to_string();
 
         let workspace = Workspace {
             id,
             idx,
             name,
             is_focused,
+            output,
         };
         workspace_list.push(workspace);
     }
@@ -119,9 +121,10 @@ fn workspace_activated(workspace: &Value) -> Option<CompositorEvent> {
 
     Some(CompositorEvent::WorkspaceActivated(Workspace {
         id,
-        idx: 0,
         is_focused,
+        idx: 0,
         name: None,
+        output: String::new()
     }))
 }
 

@@ -37,6 +37,7 @@ struct Workspace {
     idx: u8,
     name: Option<String>,
     is_focused: bool,
+    output: String,
 }
 
 pub struct Workspaces {
@@ -47,9 +48,19 @@ impl ModuleData for CompositorEvent {}
 
 impl Module for Workspaces {
     fn view(&self, output: &Output) -> iced::Element<'_, crate::bar::BarEvent> {
-        row(self.workspaces.iter().map(|workspace| workspace.view()))
-            .spacing(2)
-            .into()
+        let output_name = || -> Option<&str> {
+            let output_info = output.info.as_ref()?;
+            output_info.name.as_ref().map(|string| string.as_str())
+        }()
+        .unwrap_or_default();
+
+        let workspaces = self
+            .workspaces
+            .iter()
+            .filter(|workspace| workspace.output == output_name)
+            .map(|workspace| workspace.view());
+
+        row(workspaces).spacing(2).into()
     }
 
     fn update(&mut self, update_data: Arc<dyn ModuleData>) {
