@@ -23,10 +23,10 @@ struct BarParameter {
 const DEFAULT_BAR_SIZE: u32 = 32;
 const DEFAULT_FONT_NAME: &str = "monospace";
 
-// Cramming the configuration table inside a lazy lock makes hot reloading config impossible but it
-// allows me to side step a few problems such as not being able to adjust the bar's height and default
-// font at runtime. The latter could be solved by parsing the config file before the bar launches
-// but that also requires parsing the same config file twice.
+// Cramming the configuration table inside a lazy lock makes config hot reloading impossible but it
+// allows me to side step a few problems such as not being able to adjust the default font and bar's
+// height at runtime. The latter could be solved by parsing the config file before the bar launches
+// but that will require parsing the same config file twice.
 pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     let config_file = get_config_location();
     info(format!("Using config from {}", config_file.display()));
