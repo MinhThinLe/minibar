@@ -48,7 +48,9 @@ impl IpcBackend for NiriIpcBackend {
         }
 
         if let Err(reason) = receiver.get_mut().shutdown(Shutdown::Write) {
-            error(format!( "Could not establish a clean connection to Niri due to {reason}"));
+            error(format!(
+                "Could not establish a clean connection to Niri due to {reason}"
+            ));
         }
 
         Some(Self {

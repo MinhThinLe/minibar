@@ -54,21 +54,25 @@ impl Bar {
                     .for_each(|module| module.update(module_update.1.clone()));
                 Task::none()
             }
-            BarEvent::OutputUpdate(event, output) => {
-                self.handle_output_event(event, output)
-            }
+            BarEvent::OutputUpdate(event, output) => self.handle_output_event(event, output),
             BarEvent::OutputReady(output, id) => self.create_client(output, id),
         }
     }
 
     pub fn view(&self, _window_id: Id) -> Element<'_, BarEvent> {
-        let left_modules = row(self.left_modules.iter().map(|module| module.view()))
+        let current_output = self
+            .outputs
+            .iter()
+            .find(|output| output.id == _window_id)
+            .expect("Trying to use a WlOutput before initializing it");
+
+        let left_modules = row(self.left_modules.iter().map(|module| module.view(&current_output)))
             .height(Fill)
             .align_y(Center);
-        let center_modules = row(self.center_modules.iter().map(|module| module.view()))
+        let center_modules = row(self.center_modules.iter().map(|module| module.view(&current_output)))
             .height(Fill)
             .align_y(Center);
-        let right_modules = row(self.right_modules.iter().map(|module| module.view()))
+        let right_modules = row(self.right_modules.iter().map(|module| module.view(&current_output)))
             .height(Fill)
             .align_y(Center);
 

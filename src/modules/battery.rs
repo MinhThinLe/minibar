@@ -10,11 +10,8 @@ use iced::widget::{container, text};
 use iced::{Background, Color, Element, Subscription, stream};
 use toml::Table;
 
-use crate::bar::BarEvent;
 use crate::logger::warn;
-use crate::modules::{
-    CommonStyle, Module, ModuleData, ModuleUpdate, get_poll_interval, rgba8_to_color,
-};
+use super::*;
 
 const DEFAULT_FORMAT: &str = "BAT: {percentage}%";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 0;
@@ -81,7 +78,7 @@ impl Battery {
 }
 
 impl Module for Battery {
-    fn view(&self) -> Element<'_, BarEvent> {
+    fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
         container(text(self.get_text()))
             .padding(self.style.padding)
             .style(|_idk| container::Style {

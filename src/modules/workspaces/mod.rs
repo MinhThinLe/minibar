@@ -11,10 +11,10 @@ use iced::{Background, Color, Subscription};
 
 use toml::Table;
 
-use crate::logger::warn;
-use crate::{logger::info, modules::Module};
+use crate::bar::Output;
+use crate::logger::{warn, info};
 
-use super::{ModuleData, ModuleUpdate};
+use super::*;
 
 use niri::NiriIpcBackend;
 
@@ -46,7 +46,7 @@ pub struct Workspaces {
 impl ModuleData for CompositorEvent {}
 
 impl Module for Workspaces {
-    fn view(&self) -> iced::Element<'_, crate::bar::BarEvent> {
+    fn view(&self, output: &Output) -> iced::Element<'_, crate::bar::BarEvent> {
         row(self.workspaces.iter().map(|workspace| workspace.view()))
             .spacing(2)
             .into()
@@ -58,7 +58,9 @@ impl Module for Workspaces {
             .expect("Why is this event routed here?");
 
         match event {
-            CompositorEvent::WorkspacesChanged(workspaces) => self.workspaces.clone_from(workspaces),
+            CompositorEvent::WorkspacesChanged(workspaces) => {
+                self.workspaces.clone_from(workspaces)
+            }
             CompositorEvent::WorkspaceActivated(changed_workspace) => {
                 self.change_workspace(changed_workspace);
             }

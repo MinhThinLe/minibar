@@ -14,7 +14,7 @@ use toml::value::Array;
 use toml::{Table, Value};
 
 use crate::CONFIG;
-use crate::bar::BarEvent;
+use crate::bar::{BarEvent, Output};
 
 pub mod reexports {
     pub use super::Module;
@@ -47,7 +47,7 @@ impl_downcast!(sync ModuleData);
 
 pub trait Module: DowncastSync {
     fn update(&mut self, update_data: Arc<dyn ModuleData>);
-    fn view(&self) -> Element<'_, BarEvent>;
+    fn view(&self, output: &Output) -> Element<'_, BarEvent>;
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>>;
     fn new_or_default(table: &Table) -> Rc<dyn Module>
     where
@@ -93,7 +93,7 @@ fn parse_border(value: &Value) -> Border {
         return Border::default();
     };
 
-    let color = toml_to_color(value, "color") .unwrap_or(Color::BLACK);
+    let color = toml_to_color(value, "color").unwrap_or(Color::BLACK);
     let width = float_from_table_and_key(value, "width").unwrap_or_default();
     let radius = float_from_table_and_key(value, "radius").unwrap_or_default();
 
