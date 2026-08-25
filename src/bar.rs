@@ -131,6 +131,7 @@ impl Bar {
                     .iter()
                     .position(|output| output.display == wl_display);
                 if let Some(position) = position {
+                    self.outputs.get_mut(position).unwrap().display.release();
                     self.outputs.swap_remove(position);
                 }
             }
