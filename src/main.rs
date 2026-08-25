@@ -8,10 +8,7 @@ use std::process::exit;
 use std::sync::LazyLock;
 use std::{env, fs};
 
-use iced::Font;
-use iced_layershell::reexport::Anchor;
-use iced_layershell::settings::{LayerShellSettings, StartMode};
-use iced_layershell::{Settings, application};
+use iced::{Font, daemon};
 
 use toml::Table;
 
@@ -73,23 +70,15 @@ impl Default for BarParameter {
     }
 }
 
-fn main() -> iced_layershell::Result {
-    let start_mode = StartMode::Active;
-
-    let layer_settings = LayerShellSettings {
-        size: Some((BAR_PARAMETER.bar_size, BAR_PARAMETER.bar_size)),
-        exclusive_zone: BAR_PARAMETER.bar_size.cast_signed(),
-        anchor: Anchor::Top | Anchor::Left | Anchor::Right, // TODO: Vertical status bar support
-        start_mode,
+fn main() -> iced::Result {
+    let settings = iced::Settings {
+        id: None,
+        default_font: Font::with_name(DEFAULT_FONT_NAME),
+        exit_on_close_request: false,
+        is_daemon: false,
         ..Default::default()
     };
-
-    let settings = Settings {
-        layer_settings,
-        ..Default::default()
-    };
-
-    application(Bar::start, Bar::namespace, Bar::update, Bar::view)
+    daemon(Bar::start, Bar::update, Bar::view)
         .settings(settings)
         .subscription(Bar::subscription)
         .default_font(Font::with_name(BAR_PARAMETER.font_name))

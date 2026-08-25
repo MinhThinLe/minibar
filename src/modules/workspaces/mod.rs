@@ -59,7 +59,9 @@ impl Module for Workspaces {
 
         match event {
             CompositorEvent::WorkspacesChanged(workspaces) => self.workspaces = workspaces.to_vec(),
-            CompositorEvent::WorkspaceActivated(changed_workspace) => self.change_workspace(changed_workspace),
+            CompositorEvent::WorkspaceActivated(changed_workspace) => {
+                self.change_workspace(changed_workspace)
+            }
         }
     }
 
@@ -86,8 +88,14 @@ impl Workspaces {
         if !new_workspace.is_focused {
             println!("WHAT")
         }
-        self.workspaces.iter_mut().for_each(|workspace| workspace.is_focused = false);
-        let Some(target_workspace) = self.workspaces.iter_mut().find(|workspace| workspace.id == new_workspace.id) else {
+        self.workspaces
+            .iter_mut()
+            .for_each(|workspace| workspace.is_focused = false);
+        let Some(target_workspace) = self
+            .workspaces
+            .iter_mut()
+            .find(|workspace| workspace.id == new_workspace.id)
+        else {
             warn("Invalid workspace ID");
             return;
         };

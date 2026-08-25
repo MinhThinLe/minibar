@@ -63,7 +63,7 @@ impl IpcBackend for NiriIpcBackend {
 fn parse_compositor_event(content: &str) -> Option<CompositorEvent> {
     let parsed = content.parse::<Value>().ok()?;
 
-    println!("{parsed:#?}");
+    // println!("{parsed:#?}");
     if let Some(workspaces) = parsed.get("WorkspacesChanged") {
         return workspaces_changed(workspaces);
     }

@@ -42,6 +42,7 @@ impl From<&Table> for Bar {
             center_modules,
             right_modules,
             theme,
+            outputs: Vec::new(),
         }
     }
 }
