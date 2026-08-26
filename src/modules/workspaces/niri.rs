@@ -3,9 +3,8 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::Shutdown;
 use std::os::unix::net::UnixStream;
 
+use log::error;
 use serde_json::Value;
-
-use crate::logger::error;
 
 use super::{CompositorEvent, IpcBackend, Workspace};
 
@@ -48,9 +47,7 @@ impl IpcBackend for NiriIpcBackend {
         }
 
         if let Err(reason) = receiver.get_mut().shutdown(Shutdown::Write) {
-            error(format!(
-                "Could not establish a clean connection to Niri due to {reason}"
-            ));
+            error!("Could not establish a clean connection to Niri due to {reason}");
         }
 
         Some(Self {
@@ -124,7 +121,7 @@ fn workspace_activated(workspace: &Value) -> Option<CompositorEvent> {
         is_focused,
         idx: 0,
         name: None,
-        output: String::new()
+        output: String::new(),
     }))
 }
 

@@ -1,10 +1,10 @@
 use std::{collections::HashMap, rc::Rc};
 
 use iced::Theme;
+use log::{error, warn};
 use toml::{Table, Value, value::Array};
 
 use crate::bar::Bar;
-use crate::logger::{error, warn};
 use crate::modules::reexports::*;
 
 type ModuleFactoryFunction = fn(&Table) -> Rc<dyn Module>;
@@ -20,7 +20,7 @@ const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 3] = [
 impl From<&Table> for Bar {
     fn from(value: &Table) -> Self {
         let Some(bar_config) = value.get("bar") else {
-            warn("Bar config empty, nothing to do");
+            warn!("Bar config empty, nothing to do");
             return Bar::default();
         };
 
@@ -54,13 +54,13 @@ fn get_module_list(
     let mut modules = Vec::with_capacity(array.len());
     for item in array {
         let Some(module_name) = item.as_str() else {
-            warn("Found non-string value in module array, skipping");
+            warn!("Found non-string value in module array, skipping");
             continue;
         };
         if let Some(module) = module_registry.get(module_name) {
             modules.push(module.clone());
         } else {
-            warn(format!("Couldn't locate module with name {module_name}"));
+            warn!("Couldn't locate module with name {module_name}");
         }
     }
     modules
@@ -82,7 +82,7 @@ fn parse_modules(table: &Table) -> HashMap<String, Rc<dyn Module>> {
             .expect("Implement custom modules");
 
         let Some(table) = value.as_table() else {
-            error(format!("item {key} must be a table, skipping"));
+            error!("item {key} must be a table, skipping");
             continue;
         };
 
@@ -127,7 +127,7 @@ fn get_builtin_theme(theme_name: &str) -> Option<Theme> {
         "oxocarbon" => Theme::Oxocarbon,
         "ferra" => Theme::Ferra,
         other => {
-            error(format!("Unrecognized theme {other}"));
+            error!("Unrecognized theme {other}");
             return None;
         }
     })

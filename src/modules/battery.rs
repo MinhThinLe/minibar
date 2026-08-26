@@ -8,9 +8,9 @@ use std::thread::sleep;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
 use iced::{Background, Color, Element, Subscription, stream};
+use log::warn;
 use toml::Table;
 
-use crate::logger::warn;
 use super::*;
 
 const DEFAULT_FORMAT: &str = "BAT: {percentage}%";
@@ -115,11 +115,11 @@ impl Module for Battery {
             let threshold = table.get("critical_threshold")?;
             let threshold = threshold.as_integer()?;
             if threshold >= 100 {
-                warn("Setting critical threshold to 100 or above makes it useless");
+                warn!("Setting critical threshold to 100 or above makes it useless");
                 None?;
             }
             if threshold < 0 {
-                warn("Setting critical threshold to below 0 makes it useless");
+                warn!("Setting critical threshold to below 0 makes it useless");
                 None?;
             }
             u8::try_from(threshold).ok()

@@ -9,10 +9,10 @@ use iced::stream;
 use iced::widget::{Text, button, row, text};
 use iced::{Background, Color, Subscription};
 
+use log::{info, warn};
 use toml::Table;
 
 use crate::bar::Output;
-use crate::logger::{warn, info};
 
 use super::*;
 
@@ -109,7 +109,7 @@ impl Workspaces {
             .iter_mut()
             .find(|workspace| workspace.id == new_workspace.id)
         else {
-            warn("Invalid workspace ID");
+            warn!("Invalid workspace ID");
             return;
         };
 
@@ -145,7 +145,7 @@ impl Workspace {
 
 fn try_create_backend() -> Option<Box<dyn IpcBackend>> {
     if let Some(niri) = <NiriIpcBackend as IpcBackend>::try_create() {
-        info("[Workspaces] using Niri backend");
+        info!("[Workspaces] using Niri backend");
         return Some(Box::new(niri));
     }
 
@@ -157,7 +157,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
 
     stream::channel(0, async |mut output| {
         let Some(mut ipc_backend) = try_create_backend() else {
-            warn("Unsupported compositor");
+            warn!("Unsupported compositor");
             return;
         };
         loop {

@@ -1321,6 +1321,7 @@ version = "0.1.0"
 dependencies = [
  "downcast-rs 2.0.2",
  "iced",
+ "log",
  "serde_json",
  "smithay-client-toolkit",
  "toml",

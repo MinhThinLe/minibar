@@ -10,10 +10,12 @@ use std::{env, fs};
 
 use iced::{Font, daemon};
 
+use log::{error, info};
 use toml::Table;
 
 use bar::Bar;
-use logger::{error, info};
+
+use crate::logger::Logger;
 
 struct BarParameter {
     font_name: &'static str,
@@ -29,7 +31,8 @@ const DEFAULT_FONT_NAME: &str = "monospace";
 // but that will require parsing the same config file twice.
 pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     let config_file = get_config_location();
-    info(format!("Using config from {}", config_file.display()));
+    // info(format!("Using config from {}", config_file.display()));
+    info!("Using config from {}", config_file.display());
 
     let Ok(content) = fs::read_to_string(config_file) else {
         return Table::default();
@@ -71,6 +74,7 @@ impl Default for BarParameter {
 }
 
 fn main() -> iced::Result {
+    let _ = log::set_logger(&Logger).map(|()| log::set_max_level(log::LevelFilter::Info));
     let settings = iced::Settings {
         id: Some("minibar".to_string()),
         default_font: Font::with_name(DEFAULT_FONT_NAME),
@@ -100,7 +104,7 @@ fn get_config_location() -> PathBuf {
             return path.into();
         }
 
-        error("--config-file must be followed by a path to a config file, exiting now");
+        error!("--config-file must be followed by a path to a config file, exiting now");
         exit(1);
     }
 
@@ -108,9 +112,7 @@ fn get_config_location() -> PathBuf {
     if !config_dir.exists()
         && let Err(err) = fs::create_dir_all(&config_dir)
     {
-        error(format!(
-            "Unable to create config directory due to {err}, exiting now"
-        ));
+        error!("Unable to create config directory due to {err}, exiting now");
         exit(1);
     }
 
@@ -128,7 +130,7 @@ fn get_config_dir() -> PathBuf {
         return home_dir.join(".config").join(CONFIG_DIR);
     }
 
-    error(
+    error!(
         "Could not figure out how to get config directory. This issue may be resolved by setting $XDG_CONFIG_HOME or $HOME",
     );
     exit(1)
