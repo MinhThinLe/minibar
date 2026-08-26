@@ -55,33 +55,33 @@ impl Bar {
                 Task::none()
             }
             BarEvent::OutputUpdate(event, output) => self.handle_output_event(event, output),
-            BarEvent::OutputReady(output, id) => self.create_client(output, id),
+            BarEvent::OutputReady(output, id) => create_client(output, id),
         }
     }
 
-    pub fn view(&self, _window_id: Id) -> Element<'_, BarEvent> {
+    pub fn view(&self, window_id: Id) -> Element<'_, BarEvent> {
         let current_output = self
             .outputs
             .iter()
-            .find(|output| output.id == _window_id)
+            .find(|output| output.id == window_id)
             .expect("Trying to use a WlOutput before initializing it");
 
         let left_modules = row(self
             .left_modules
             .iter()
-            .map(|module| module.view(&current_output)))
+            .map(|module| module.view(current_output)))
         .height(Fill)
         .align_y(Center);
         let center_modules = row(self
             .center_modules
             .iter()
-            .map(|module| module.view(&current_output)))
+            .map(|module| module.view(current_output)))
         .height(Fill)
         .align_y(Center);
         let right_modules = row(self
             .right_modules
             .iter()
-            .map(|module| module.view(&current_output)))
+            .map(|module| module.view(current_output)))
         .height(Fill)
         .align_y(Center);
 
@@ -160,18 +160,18 @@ impl Bar {
         }
         Task::none()
     }
+}
 
-    fn create_client(&mut self, wl_display: WlOutput, id: Id) -> Task<BarEvent> {
-        get_layer_surface(SctkLayerSurfaceSettings {
-            id,
-            size: Some((Some(BAR_PARAMETER.bar_size), Some(BAR_PARAMETER.bar_size))),
-            anchor: Anchor::LEFT | Anchor::TOP | Anchor::RIGHT,
-            exclusive_zone: BAR_PARAMETER.bar_size.cast_signed(),
-            layer: Layer::Top,
-            output: IcedOutput::Output(wl_display),
-            ..Default::default()
-        })
-    }
+fn create_client(wl_display: WlOutput, id: Id) -> Task<BarEvent> {
+    get_layer_surface(SctkLayerSurfaceSettings {
+        id,
+        size: Some((Some(BAR_PARAMETER.bar_size), Some(BAR_PARAMETER.bar_size))),
+        anchor: Anchor::LEFT | Anchor::TOP | Anchor::RIGHT,
+        exclusive_zone: BAR_PARAMETER.bar_size.cast_signed(),
+        layer: Layer::Top,
+        output: IcedOutput::Output(wl_display),
+        ..Default::default()
+    })
 }
 
 fn compositor_events() -> Subscription<BarEvent> {

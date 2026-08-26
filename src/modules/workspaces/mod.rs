@@ -51,6 +51,7 @@ struct WorkspacesConfig {
 }
 
 pub struct Workspaces {
+    #[allow(clippy::struct_field_names)]
     workspaces: Vec<Workspace>,
     config: WorkspacesConfig,
     style: CommonStyle,
@@ -62,7 +63,7 @@ impl Module for Workspaces {
     fn view(&self, output: &Output) -> iced::Element<'_, crate::bar::BarEvent> {
         let output_name = || -> Option<&str> {
             let output_info = output.info.as_ref()?;
-            output_info.name.as_ref().map(|string| string.as_str())
+            output_info.name.as_deref()
         }()
         .unwrap_or_default();
 
@@ -70,7 +71,7 @@ impl Module for Workspaces {
             .workspaces
             .iter()
             .filter(|workspace| workspace.output == output_name)
-            .map(|workspace| workspace.view(&self.style, &self.config).into());
+            .map(|workspace| workspace.view(&self.style, &self.config));
 
         row(workspaces)
             .spacing(self.config.spacing)
@@ -85,7 +86,7 @@ impl Module for Workspaces {
 
         match event {
             CompositorEvent::WorkspacesChanged(workspaces) => {
-                self.workspaces.clone_from(workspaces)
+                self.workspaces.clone_from(workspaces);
             }
             CompositorEvent::WorkspaceActivated(changed_workspace) => {
                 self.change_workspace(changed_workspace);
@@ -103,9 +104,7 @@ impl Module for Workspaces {
     {
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT);
         let focused_color = get_color(table, "focused_color").unwrap_or(DEFAULT_FOCUSED_COLOR);
-        let spacing = get_int(table, "spacing")
-            .map(|int| int as u16)
-            .unwrap_or(DEFAULT_SPACING);
+        let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |int| int as u16);
 
         let style = CommonStyle::from(table);
 
@@ -150,14 +149,10 @@ impl Workspace {
         style: &CommonStyle,
         config: &WorkspacesConfig,
     ) -> iced::Element<'_, crate::bar::BarEvent> {
-        let background = {
-            if self.is_focused {
-                Some(Background::Color(config.focused_color))
-            } else if let Some(color) = style.background {
-                Some(Background::Color(color))
-            } else {
-                None
-            }
+        let background = if self.is_focused {
+            Some(Background::Color(config.focused_color))
+        } else {
+            style.background.map(Background::Color)
         };
 
         let text_color = style.foreground.unwrap_or(Color::WHITE);
@@ -177,11 +172,7 @@ impl Workspace {
         const NAME: &str = "{name}";
         const INDEX: &str = "{index}";
 
-        let name = self
-            .name
-            .as_ref()
-            .map(|string| string.as_str())
-            .unwrap_or_default();
+        let name = self.name.as_deref().unwrap_or_default();
         let content = format
             .replace(NAME, name)
             .replace(INDEX, &self.idx.to_string());

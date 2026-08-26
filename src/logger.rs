@@ -15,7 +15,7 @@ impl Log for Logger {
         }
         stderr()
             .write_all(format!("{}: {}\n", color_record(record.level()), record.args()).as_bytes())
-            .expect("Could not write to stderr")
+            .expect("Could not write to stderr");
     }
 
     fn flush(&self) {}

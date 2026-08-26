@@ -94,9 +94,8 @@ impl Module for Cpu {
         // TODO: Add configuration options for this module
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT).into();
 
-        let critical_threshold = get_int(table, "threshold")
-            .map(|int| int as u8)
-            .unwrap_or(DEFAULT_CRITICAL_THRESHOLD);
+        let critical_threshold =
+            get_int(table, "threshold").map_or(DEFAULT_CRITICAL_THRESHOLD, |int| int as u8);
 
         let critical_foreground = get_color(table, "critical_foreground");
 
