@@ -88,8 +88,8 @@ fn parse_border(value: &Value) -> Border {
     };
 
     let color = get_color(value, "color").unwrap_or(Color::BLACK);
-    let width = float_from_table_and_key(value, "width").unwrap_or_default();
-    let radius = float_from_table_and_key(value, "radius").unwrap_or_default();
+    let width = get_float(value, "width").unwrap_or_default();
+    let radius = get_float(value, "radius").unwrap_or_default();
 
     Border {
         color,
@@ -132,10 +132,10 @@ fn parse_padding(value: &Value) -> Option<Padding> {
 }
 
 fn padding_from_table(value: &Table) -> Padding {
-    let top = float_from_table_and_key(value, "top").unwrap_or_default();
-    let right = float_from_table_and_key(value, "right").unwrap_or_default();
-    let bottom = float_from_table_and_key(value, "bottom").unwrap_or_default();
-    let left = float_from_table_and_key(value, "left").unwrap_or_default();
+    let top = get_float(value, "top").unwrap_or_default();
+    let right = get_float(value, "right").unwrap_or_default();
+    let bottom = get_float(value, "bottom").unwrap_or_default();
+    let left = get_float(value, "left").unwrap_or_default();
 
     Padding {
         top,
@@ -165,10 +165,6 @@ fn padding_from_array(value: &Array) -> Option<Padding> {
     unreachable!()
 }
 
-fn float_from_table_and_key(value: &Table, index_key: &str) -> Option<f32> {
-    float_from_value(value.get(index_key)?)
-}
-
 fn float_from_value(value: &Value) -> Option<f32> {
     match value {
         Value::Float(float) => Some(*float as f32),
@@ -182,15 +178,19 @@ fn get_str<'a>(table: &'a Table, key: &'a str) -> Option<&'a str> {
     string.as_str()
 }
 
-fn get_int<'a>(table: &'a Table, key: &'a str) -> Option<i64> {
+fn get_int(table: &Table, key: &str) -> Option<i64> {
     let int = table.get(key)?;
     int.as_integer()
 }
 
-fn get_color<'a>(table: &'a Table, key: &'a str) -> Option<Color> {
+fn get_color(table: &Table, key: &str) -> Option<Color> {
     let color = get_int(table, key)?;
     let raw_rgba8 = u32::try_from(color).ok()?;
     Some(rgba8_to_color(raw_rgba8))
+}
+
+fn get_float(value: &Table, index_key: &str) -> Option<f32> {
+    float_from_value(value.get(index_key)?)
 }
 
 #[cfg(test)]

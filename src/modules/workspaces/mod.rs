@@ -19,6 +19,8 @@ use super::*;
 use niri::NiriIpcBackend;
 
 const DEFAULT_FORMAT: &str = "{index}";
+const DEFAULT_FOCUSED_COLOR: Color = Color::from_rgb8(255, 0, 0);
+const DEFAULT_SPACING: u16 = 2;
 
 trait IpcBackend: Send + Sync {
     fn next_event(&mut self) -> Option<CompositorEvent>;
@@ -42,8 +44,16 @@ struct Workspace {
     output: String,
 }
 
+struct WorkspacesConfig {
+    format: Box<str>,
+    focused_color: Color,
+    spacing: u16,
+}
+
 pub struct Workspaces {
     workspaces: Vec<Workspace>,
+    config: WorkspacesConfig,
+    style: CommonStyle,
 }
 
 impl ModuleData for CompositorEvent {}
@@ -60,9 +70,12 @@ impl Module for Workspaces {
             .workspaces
             .iter()
             .filter(|workspace| workspace.output == output_name)
-            .map(|workspace| workspace.view());
+            .map(|workspace| workspace.view(&self.style, &self.config).into());
 
-        row(workspaces).spacing(2).into()
+        row(workspaces)
+            .spacing(self.config.spacing)
+            .padding(self.style.padding)
+            .into()
     }
 
     fn update(&mut self, update_data: Arc<dyn ModuleData>) {
@@ -89,9 +102,23 @@ impl Module for Workspaces {
         Self: Sized,
     {
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT);
+        let focused_color = get_color(table, "focused_color").unwrap_or(DEFAULT_FOCUSED_COLOR);
+        let spacing = get_int(table, "spacing")
+            .map(|int| int as u16)
+            .unwrap_or(DEFAULT_SPACING);
+
+        let style = CommonStyle::from(table);
+
+        let config = WorkspacesConfig {
+            format: format.into(),
+            focused_color,
+            spacing,
+        };
 
         Rc::new(Self {
             workspaces: Vec::new(),
+            config,
+            style,
         })
     }
 }
@@ -118,28 +145,48 @@ impl Workspaces {
 }
 
 impl Workspace {
-    fn view(&self) -> iced::Element<'_, crate::bar::BarEvent> {
-        let background = if self.is_focused {
-            Background::Color(Color::from_rgb(1.0, 0., 0.))
-        } else {
-            Background::Color(Color::from_rgb(0., 0., 0.))
+    fn view(
+        &self,
+        style: &CommonStyle,
+        config: &WorkspacesConfig,
+    ) -> iced::Element<'_, crate::bar::BarEvent> {
+        let background = {
+            if self.is_focused {
+                Some(Background::Color(config.focused_color))
+            } else if let Some(color) = style.background {
+                Some(Background::Color(color))
+            } else {
+                None
+            }
         };
 
-        button(self.get_text())
+        let text_color = style.foreground.unwrap_or(Color::WHITE);
+        let border = style.border;
+
+        button(self.format(&config.format))
             .style(move |_old, _arg2| button::Style {
-                background: Some(background),
-                text_color: Color::WHITE,
+                background,
+                text_color,
+                border,
                 ..Default::default()
             })
             .into()
     }
 
-    fn get_text(&self) -> Text<'_> {
-        if let Some(name) = self.name.as_ref() {
-            return text(name);
-        }
+    fn format(&self, format: &str) -> Text<'_> {
+        const NAME: &str = "{name}";
+        const INDEX: &str = "{index}";
 
-        text(self.idx)
+        let name = self
+            .name
+            .as_ref()
+            .map(|string| string.as_str())
+            .unwrap_or_default();
+        let content = format
+            .replace(NAME, name)
+            .replace(INDEX, &self.idx.to_string());
+
+        text(content)
     }
 }
 
