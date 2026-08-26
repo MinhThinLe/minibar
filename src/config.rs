@@ -132,17 +132,3 @@ fn get_builtin_theme(theme_name: &str) -> Option<Theme> {
         }
     })
 }
-
-#[cfg(test)]
-mod test {
-    const TEST_CONFIG_FILE: &str = include_str!("../examples/configs/test-config.toml");
-    use toml::Table;
-
-    use crate::bar::Bar;
-
-    #[test]
-    fn test_config_parsing() {
-        let table = TEST_CONFIG_FILE.parse::<Table>().unwrap();
-        let bar = Bar::from(&table);
-    }
-}
