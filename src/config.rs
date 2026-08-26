@@ -35,7 +35,7 @@ impl From<&Table> for Bar {
         let center_modules = get_module("center_modules").unwrap_or_default();
         let right_modules = get_module("right_modules").unwrap_or_default();
 
-        let theme = get_theme(value);
+        let theme = get_theme(bar_config);
 
         Self {
             left_modules,
@@ -92,7 +92,7 @@ fn parse_modules(table: &Table) -> HashMap<String, Rc<dyn Module>> {
     modules
 }
 
-fn get_theme(table: &Table) -> Theme {
+fn get_theme(table: &Value) -> Theme {
     let theme = match table.get("theme") {
         Some(Value::String(theme)) => get_builtin_theme(theme),
         _ => None,
@@ -102,6 +102,7 @@ fn get_theme(table: &Table) -> Theme {
 }
 
 fn get_builtin_theme(theme_name: &str) -> Option<Theme> {
+    println!("{theme_name}");
     Some(match theme_name {
         "light" => Theme::Light,
         "dark" => Theme::Dark,
