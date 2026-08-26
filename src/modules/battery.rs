@@ -8,13 +8,11 @@ use std::thread::sleep;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
 use iced::{Background, Color, Element, Subscription, stream};
-use log::warn;
 use toml::Table;
 
 use super::*;
 
 const DEFAULT_FORMAT: &str = "BAT: {percentage}%";
-const DEFAULT_CRITICAL_THRESHOLD: u8 = 0;
 
 #[derive(Default, Clone, Copy, Debug, Eq, PartialEq)]
 enum BatteryState {
@@ -105,34 +103,9 @@ impl Module for Battery {
     where
         Self: Sized,
     {
-        let format = || -> Option<&str> {
-            let format = table.get("format")?;
-            format.as_str()
-        }()
-        .unwrap_or(DEFAULT_FORMAT);
-
-        let critical_threshold = || -> Option<u8> {
-            let threshold = table.get("critical_threshold")?;
-            let threshold = threshold.as_integer()?;
-            if threshold >= 100 {
-                warn!("Setting critical threshold to 100 or above makes it useless");
-                None?;
-            }
-            if threshold < 0 {
-                warn!("Setting critical threshold to below 0 makes it useless");
-                None?;
-            }
-            u8::try_from(threshold).ok()
-        }()
-        .unwrap_or(DEFAULT_CRITICAL_THRESHOLD);
-
-        let critical_foreground = || -> Option<Color> {
-            let foreground = table.get("critical_foreground")?;
-            let foreground = foreground.as_integer()?;
-            let raw_rgba8 = u32::try_from(foreground).ok()?;
-            Some(rgba8_to_color(raw_rgba8))
-        }();
-
+        let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT);
+        let critical_threshold = get_int(table, "critical_threshold").unwrap_or_default() as u8;
+        let critical_foreground = get_color(table, "ciritical_foreground");
         let style = CommonStyle::from(table);
 
         let config = BatteryConfig {

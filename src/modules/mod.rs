@@ -28,12 +28,6 @@ const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(1);
 #[derive(Clone)]
 pub struct ModuleUpdate(pub TypeId, pub Arc<dyn ModuleData>);
 
-impl Debug for ModuleUpdate {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Update designated for module {:?}", self.0)
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct CommonStyle {
     pub padding: Padding,
@@ -66,8 +60,8 @@ impl From<&Table> for CommonStyle {
 
         let border = value.get("border").map_or(Border::default(), parse_border);
 
-        let background = toml_to_color(value, "background");
-        let foreground = toml_to_color(value, "foreground");
+        let background = get_color(value, "background");
+        let foreground = get_color(value, "foreground");
 
         Self {
             padding,
@@ -93,7 +87,7 @@ fn parse_border(value: &Value) -> Border {
         return Border::default();
     };
 
-    let color = toml_to_color(value, "color").unwrap_or(Color::BLACK);
+    let color = get_color(value, "color").unwrap_or(Color::BLACK);
     let width = float_from_table_and_key(value, "width").unwrap_or_default();
     let radius = float_from_table_and_key(value, "radius").unwrap_or_default();
 
@@ -102,12 +96,6 @@ fn parse_border(value: &Value) -> Border {
         width,
         radius: Radius::from(radius),
     }
-}
-
-fn toml_to_color(value: &Table, property_name: &str) -> Option<Color> {
-    let color = value.get(property_name)?;
-    let raw_rgba8 = color.as_integer()?;
-    Some(rgba8_to_color(u32::try_from(raw_rgba8).ok()?))
 }
 
 fn rgba8_to_color(raw: u32) -> Color {
@@ -187,6 +175,22 @@ fn float_from_value(value: &Value) -> Option<f32> {
         Value::Integer(integer) => Some(*integer as f32),
         _ => None,
     }
+}
+
+fn get_str<'a>(table: &'a Table, key: &'a str) -> Option<&'a str> {
+    let string = table.get(key)?;
+    string.as_str()
+}
+
+fn get_int<'a>(table: &'a Table, key: &'a str) -> Option<i64> {
+    let int = table.get(key)?;
+    int.as_integer()
+}
+
+fn get_color<'a>(table: &'a Table, key: &'a str) -> Option<Color> {
+    let color = get_int(table, key)?;
+    let raw_rgba8 = u32::try_from(color).ok()?;
+    Some(rgba8_to_color(raw_rgba8))
 }
 
 #[cfg(test)]

@@ -18,6 +18,8 @@ use super::*;
 
 use niri::NiriIpcBackend;
 
+const DEFAULT_FORMAT: &str = "{index}";
+
 trait IpcBackend: Send + Sync {
     fn next_event(&mut self) -> Option<CompositorEvent>;
     // TODO: Send events
@@ -86,12 +88,10 @@ impl Module for Workspaces {
     where
         Self: Sized,
     {
-        let workspaces = vec![];
-        // let backend = try_create_backend();
+        let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT);
 
         Rc::new(Self {
-            workspaces,
-            // backend,
+            workspaces: Vec::new(),
         })
     }
 }

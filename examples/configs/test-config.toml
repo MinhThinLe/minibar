@@ -21,3 +21,6 @@ format = "CPU: {usage}%"
 border = {
     radius = 20
 }
+
+[workspaces]
+format = "{name}"

@@ -33,7 +33,7 @@ pub struct Output {
     id: Id,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum BarEvent {
     ModuleUpdate(ModuleUpdate),
     OutputUpdate(OutputEvent, WlOutput),
