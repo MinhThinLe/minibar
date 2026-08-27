@@ -9,7 +9,7 @@ use std::thread::sleep;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
 use iced::{Background, Color, Subscription, stream};
-use minibar_derives::NamedModule;
+use minibar_derives::{ModuleData, NamedModule};
 
 use super::*;
 
@@ -26,7 +26,7 @@ struct CoreStat {
     total: i64,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, ModuleData)]
 struct CoresStat(Vec<CoreStat>);
 
 #[derive(Debug, Clone, Copy)]
@@ -49,8 +49,6 @@ pub struct Cpu {
     config: CpuConfig,
     style: CommonStyle,
 }
-
-impl ModuleData for CoresStat {}
 
 impl Default for CpuConfig {
     fn default() -> Self {

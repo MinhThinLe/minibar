@@ -8,14 +8,14 @@ use std::thread::sleep;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
 use iced::{Background, Color, Element, Subscription, stream};
-use minibar_derives::NamedModule;
+use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
 
 use super::*;
 
 const DEFAULT_FORMAT: &str = "BAT: {percentage}%";
 
-#[derive(Default, Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Default, Clone, Copy, Eq, PartialEq)]
 enum BatteryState {
     Charging,
     Discharging,
@@ -23,7 +23,7 @@ enum BatteryState {
     Plugged,
 }
 
-#[derive(Default, Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Default, Clone, Copy, Eq, PartialEq, ModuleData)]
 struct BatteryStatus {
     pub percentage: u8,
     pub state: BatteryState,
@@ -41,8 +41,6 @@ pub struct Battery {
     config: BatteryConfig,
     style: CommonStyle,
 }
-
-impl ModuleData for BatteryStatus {}
 
 impl FromStr for BatteryState {
     type Err = ();

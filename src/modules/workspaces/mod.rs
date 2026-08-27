@@ -10,7 +10,7 @@ use iced::widget::{Text, button, row, text};
 use iced::{Background, Color, Subscription};
 
 use log::{info, warn};
-use minibar_derives::NamedModule;
+use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
 
 use crate::bar::Output;
@@ -31,6 +31,7 @@ trait IpcBackend: Send + Sync {
         Self: Sized;
 }
 
+#[derive(ModuleData)]
 enum CompositorEvent {
     WorkspacesChanged(Vec<Workspace>),
     WorkspaceActivated(Workspace),
@@ -58,8 +59,6 @@ pub struct Workspaces {
     config: WorkspacesConfig,
     style: CommonStyle,
 }
-
-impl ModuleData for CompositorEvent {}
 
 impl Module for Workspaces {
     fn view(&self, output: &Output) -> iced::Element<'_, crate::bar::BarEvent> {
