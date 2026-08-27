@@ -10,6 +10,10 @@ center_modules = [
     "clock"
 ]
 
+right_modules = [
+    "memory"
+]
+
 background = 0xffffff00
 
 [battery]

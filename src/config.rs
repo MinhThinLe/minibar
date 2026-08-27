@@ -25,6 +25,7 @@ static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunc
             register_module::<Cpu>(),
             register_module::<Workspaces>(),
             register_module::<Clock>(),
+            register_module::<Memory>(),
             // TODO: Implement memory module
             // TODO: Implement temperature module
             // TODO: Implement systray module

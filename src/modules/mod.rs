@@ -1,6 +1,7 @@
 mod battery;
 mod clock;
 mod cpu;
+mod memory;
 mod workspaces;
 
 use std::fmt::Debug;
@@ -22,6 +23,7 @@ pub mod reexports {
     pub use super::battery::Battery;
     pub use super::clock::Clock;
     pub use super::cpu::Cpu;
+    pub use super::memory::Memory;
     pub use super::workspaces::Workspaces;
 }
 
