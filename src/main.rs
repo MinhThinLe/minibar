@@ -31,7 +31,6 @@ const DEFAULT_FONT_NAME: &str = "monospace";
 // but that will require parsing the same config file twice.
 pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     let config_file = get_config_location();
-    // info(format!("Using config from {}", config_file.display()));
     info!("Using config from {}", config_file.display());
 
     let Ok(content) = fs::read_to_string(config_file) else {

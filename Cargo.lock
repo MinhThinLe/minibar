@@ -1361,9 +1361,18 @@ dependencies = [
  "downcast-rs",
  "iced",
  "log",
+ "minibar-derives",
  "serde_json",
  "smithay-client-toolkit",
  "toml",
+]
+
+[[package]]
+name = "minibar-derives"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 3.0.4",
 ]
 
 [[package]]

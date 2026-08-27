@@ -1,0 +1,11 @@
+[lib]
+proc-macro = true
+
+[package]
+name = "minibar-derives"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+syn = "3.0.4"
+quote = "1.0.47"

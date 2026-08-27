@@ -8,6 +8,7 @@ use std::thread::sleep;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
 use iced::{Background, Color, Element, Subscription, stream};
+use minibar_derives::NamedModule;
 use toml::Table;
 
 use super::*;
@@ -34,6 +35,7 @@ struct BatteryConfig {
     critical_foreground: Option<Color>,
 }
 
+#[derive(NamedModule)]
 pub struct Battery {
     status: BatteryStatus,
     config: BatteryConfig,

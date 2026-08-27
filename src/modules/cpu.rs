@@ -9,6 +9,7 @@ use std::thread::sleep;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{container, text};
 use iced::{Background, Color, Subscription, stream};
+use minibar_derives::NamedModule;
 
 use super::*;
 
@@ -41,7 +42,7 @@ struct CpuConfig {
     critical_foreground: Option<Color>,
 }
 
-#[derive(Default)]
+#[derive(Default, NamedModule)]
 pub struct Cpu {
     current_core_stats: CoresStat,
     last_core_stats: CoresStat,

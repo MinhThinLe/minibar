@@ -10,6 +10,7 @@ use iced::widget::{Text, button, row, text};
 use iced::{Background, Color, Subscription};
 
 use log::{info, warn};
+use minibar_derives::NamedModule;
 use toml::Table;
 
 use crate::bar::Output;
@@ -50,6 +51,7 @@ struct WorkspacesConfig {
     spacing: u16,
 }
 
+#[derive(NamedModule)]
 pub struct Workspaces {
     #[allow(clippy::struct_field_names)]
     workspaces: Vec<Workspace>,

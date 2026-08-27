@@ -50,6 +50,10 @@ pub trait Module: DowncastSync {
         Self: Sized;
 }
 
+pub trait NamedModule {
+    fn name() -> &'static str;
+}
+
 impl From<&Table> for CommonStyle {
     fn from(value: &Table) -> Self {
         const DEFAULT_PADDING: Padding = Padding::ZERO;

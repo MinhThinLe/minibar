@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{collections::HashMap, rc::Rc};
 
 use iced::Theme;
@@ -5,18 +6,37 @@ use log::{error, warn};
 use toml::{Table, Value, value::Array};
 
 use crate::bar::Bar;
-use crate::modules::reexports::*;
+use crate::modules::{NamedModule, reexports::*};
 
 type ModuleFactoryFunction = fn(&Table) -> Rc<dyn Module>;
 type ModuleInternalName = &'static str;
 
-const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 4] = [
-    // Module name   Module implementation
-    ("battery", <Battery as Module>::new_or_default),
-    ("cpu", <Cpu as Module>::new_or_default),
-    ("workspaces", <Workspaces as Module>::new_or_default),
-    ("clock", <Clock as Module>::new_or_default),
-];
+fn register_module<T: Module + NamedModule>() -> (ModuleInternalName, ModuleFactoryFunction) {
+    let name = T::name();
+    let factory_function = T::new_or_default;
+
+    (name, factory_function)
+}
+
+static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunction>> =
+    LazyLock::new(|| {
+        let modules = vec![
+            register_module::<Battery>(),
+            register_module::<Cpu>(),
+            register_module::<Workspaces>(),
+            register_module::<Clock>(),
+            // TODO: Implement memory module
+            // TODO: Implement temperature module
+            // TODO: Implement systray module
+            // TODO: Implement bluetooth module
+            // TODO: Implement group module
+            // TODO: Implement audio module
+            // TODO: Implement backlight module
+            // TODO: Implement idle inhibitor module
+        ];
+
+        HashMap::from_iter(modules)
+    });
 
 impl From<&Table> for Bar {
     fn from(value: &Table) -> Self {
@@ -77,10 +97,11 @@ fn parse_modules(table: &Table) -> HashMap<String, Rc<dyn Module>> {
         if key == "bar" {
             continue;
         }
-        let (_module_name, init_function) = FACTORY_FUNCTIONS
-            .iter()
-            .find(|func| func.0 == key)
-            .expect("Implement custom modules");
+
+        let Some(init_function) = FACTORY_FUNCTIONS.get(key.as_str()) else {
+            error!("Module {key} doesn't exists and custom modules aren't implemented yet");
+            continue;
+        };
 
         let Some(table) = value.as_table() else {
             error!("item {key} must be a table, skipping");

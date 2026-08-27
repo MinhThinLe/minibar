@@ -3,6 +3,7 @@ use iced::{
     Background,
     widget::{container, text},
 };
+use minibar_derives::NamedModule;
 
 use super::*;
 
@@ -12,6 +13,7 @@ struct ClockConfig {
     format: Box<str>,
 }
 
+#[derive(NamedModule)]
 pub struct Clock {
     config: ClockConfig,
     style: CommonStyle,
