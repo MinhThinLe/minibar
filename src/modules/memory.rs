@@ -15,6 +15,7 @@ use super::*;
 const DEFAULT_FORMAT: &str = "RAM: {usage}";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 80;
 
+#[allow(clippy::enum_variant_names)]
 enum MemorySize {
     KiloBytes(f64),
     MegaBytes(f64),
@@ -55,7 +56,8 @@ impl Module for Memory {
                 background: self.get_background(),
                 border: self.style.border,
                 ..Default::default()
-            }).into()
+            })
+            .into()
     }
 
     fn update(&mut self, update_data: Arc<dyn ModuleData>) {
@@ -77,8 +79,7 @@ impl Module for Memory {
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT).into();
 
         let critical_threshold = get_int(table, "critical_threshold")
-            .map(|threshold| threshold as u8)
-            .unwrap_or(DEFAULT_CRITICAL_THRESHOLD);
+            .map_or(DEFAULT_CRITICAL_THRESHOLD, |threshold| threshold as u8);
         let critical_foreground = get_color(table, "critical_forground");
 
         let style = CommonStyle::from(table);
@@ -150,14 +151,15 @@ impl Memory {
         const USAGE: &str = "{usage}";
         const USAGE_PERCENTAGE: &str = "{percent_used}";
 
-        self.config.format
+        self.config
+            .format
             .replace(USAGE, &self.status.usage().to_string())
             .replace(USAGE_PERCENTAGE, &self.status.percent_used().to_string())
     }
 
     fn get_color(&self) -> Option<Color> {
         if self.status.percent_used() > self.config.critical_threshold {
-            return Some(self.config.critical_foreground?);
+            return self.config.critical_foreground;
         }
 
         self.style.foreground
@@ -197,10 +199,10 @@ impl MemorySize {
 
     fn inner_value(&self) -> f64 {
         match self {
-            MemorySize::KiloBytes(size) => *size,
-            MemorySize::MegaBytes(size) => *size,
-            MemorySize::GigaBytes(size) => *size,
-            MemorySize::TeraBytes(size) => *size,
+            MemorySize::KiloBytes(size)
+            | MemorySize::MegaBytes(size)
+            | MemorySize::GigaBytes(size)
+            | MemorySize::TeraBytes(size) => *size,
         }
     }
 
