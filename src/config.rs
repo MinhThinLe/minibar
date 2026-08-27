@@ -10,11 +10,12 @@ use crate::modules::reexports::*;
 type ModuleFactoryFunction = fn(&Table) -> Rc<dyn Module>;
 type ModuleInternalName = &'static str;
 
-const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 3] = [
+const FACTORY_FUNCTIONS: [(ModuleInternalName, ModuleFactoryFunction); 4] = [
     // Module name   Module implementation
     ("battery", <Battery as Module>::new_or_default),
     ("cpu", <Cpu as Module>::new_or_default),
     ("workspaces", <Workspaces as Module>::new_or_default),
+    ("clock", <Clock as Module>::new_or_default),
 ];
 
 impl From<&Table> for Bar {

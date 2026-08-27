@@ -6,6 +6,9 @@ left_modules = [
     "cpu",
     "workspaces"
 ]
+center_modules = [
+    "clock"
+]
 
 background = 0xffffff00
 

@@ -1,4 +1,5 @@
 mod battery;
+mod clock;
 mod cpu;
 mod workspaces;
 
@@ -19,6 +20,7 @@ use crate::bar::{BarEvent, Output};
 pub mod reexports {
     pub use super::Module;
     pub use super::battery::Battery;
+    pub use super::clock::Clock;
     pub use super::cpu::Cpu;
     pub use super::workspaces::Workspaces;
 }

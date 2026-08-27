@@ -4,7 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-downcast-rs = "2.0.2"
+chrono = {
+    version = "0.4.45",
+    default-features = false,
+    features = [ "clock" ]
+}
+downcast-rs = "1.2.1"
 iced = { 
     git = "https://github.com/pop-os/iced.git",
     branch = "master",
@@ -16,7 +21,7 @@ iced = {
         "winit",
     ]
 }
-log = "0.4.33"
+log = "0.4.34"
 
 serde_json = "1.0.151"
 
