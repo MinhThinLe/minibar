@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::thread::sleep;
 
-use iced::futures::{SinkExt, Stream};
+use iced::futures::Stream;
 use iced::widget::{container, text};
 use iced::{Background, Color, Element, Subscription, stream};
 use minibar_derives::{ModuleData, NamedModule};
@@ -141,10 +141,8 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async |mut output| {
         let poll_interval = get_poll_interval("battery");
         let mut content = read_battery_info();
-        output
-            .send(ModuleUpdate(TYPE_ID, Arc::new(content)))
-            .await
-            .expect("Broken pipe");
+
+        send_data(&mut output, TYPE_ID, content).await;
         loop {
             sleep(poll_interval);
             let new_content = read_battery_info();
@@ -153,10 +151,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
                 continue;
             }
 
-            output
-                .send(ModuleUpdate(TYPE_ID, Arc::new(content)))
-                .await
-                .expect("Broken pipe");
+            send_data(&mut output, TYPE_ID, content).await;
             content = new_content;
         }
     })

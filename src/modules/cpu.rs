@@ -3,10 +3,9 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::thread::sleep;
 
-use iced::futures::{SinkExt, Stream};
+use iced::futures::Stream;
 use iced::widget::{container, text};
 use iced::{Background, Color, Subscription, stream};
 use minibar_derives::{ModuleData, NamedModule};
@@ -236,18 +235,11 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async |mut output| {
         let poll_interval = get_poll_interval("cpu");
 
-        output
-            .send(ModuleUpdate(MODULE_ID, Arc::new(measure())))
-            .await
-            .expect("Broken pipe");
+        send_data(&mut output, MODULE_ID, measure()).await;
 
         loop {
             sleep(poll_interval);
-
-            output
-                .send(ModuleUpdate(MODULE_ID, Arc::new(measure())))
-                .await
-                .expect("Broken pipe");
+            send_data(&mut output, MODULE_ID, measure()).await;
         }
     })
 }

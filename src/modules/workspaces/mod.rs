@@ -4,7 +4,7 @@ use std::any::TypeId;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use iced::futures::{SinkExt, Stream};
+use iced::futures::Stream;
 use iced::stream;
 use iced::widget::{Text, button, row, text};
 use iced::{Background, Color, Subscription};
@@ -203,10 +203,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
             let Some(event) = ipc_backend.next_event() else {
                 continue;
             };
-            output
-                .send(ModuleUpdate(MODULE_ID, Arc::new(event)))
-                .await
-                .expect("Broken pipe");
+            send_data(&mut output, MODULE_ID, event).await;
         }
     })
 }

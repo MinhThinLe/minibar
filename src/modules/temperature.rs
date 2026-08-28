@@ -1,7 +1,10 @@
 use std::{fs, thread::sleep};
 
 use iced::{
-    Background, Color, futures::Stream, stream, widget::{container, text}
+    Background, Color,
+    futures::Stream,
+    stream,
+    widget::{container, text},
 };
 
 use log::error;
@@ -37,7 +40,8 @@ impl Module for Temperature {
                 background: self.get_background(),
                 border: self.style.border,
                 ..Default::default()
-            }).into()
+            })
+            .into()
     }
 
     fn update(&mut self, update_data: Arc<dyn ModuleData>) {
@@ -58,7 +62,8 @@ impl Module for Temperature {
     {
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT).into();
 
-        let critical_threshold = get_float(table, "critical_threshold").unwrap_or(DEFAULT_CRITICAL_THRESHOLD);
+        let critical_threshold =
+            get_float(table, "critical_threshold").unwrap_or(DEFAULT_CRITICAL_THRESHOLD);
         let critical_foreground = get_color(table, "critical_foreground");
 
         let style = CommonStyle::from(table);
@@ -68,7 +73,6 @@ impl Module for Temperature {
             critical_threshold,
             critical_foreground,
         };
-
 
         Rc::new(Self {
             config,
@@ -119,13 +123,13 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
         let poll_interval = get_poll_interval("temperature");
         let reading = TemperatureReading(read_temp());
 
-        send_data(&mut output, ModuleUpdate(TYPE_ID, Arc::new(reading))).await;
+        send_data(&mut output, TYPE_ID, reading).await;
 
         loop {
             sleep(poll_interval);
             let reading = TemperatureReading(read_temp());
 
-            send_data(&mut output, ModuleUpdate(TYPE_ID, Arc::new(reading))).await;
+            send_data(&mut output, TYPE_ID, reading).await;
         }
     })
 }

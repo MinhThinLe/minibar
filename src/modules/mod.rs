@@ -217,8 +217,9 @@ fn float_to_string(float: f32) -> String {
     format!("{float:.1}")
 }
 
-async fn send_data(sender: &mut Sender<ModuleUpdate>, data: ModuleUpdate) {
-    sender.send(data).await.expect("Broken pipe");
+async fn send_data<T: ModuleData>(sender: &mut Sender<ModuleUpdate>, destination: TypeId,  data: T) {
+    let packet = ModuleUpdate(destination, Arc::new(data));
+    sender.send(packet).await.expect("Broken pipe");
 }
 
 #[cfg(test)]
