@@ -11,7 +11,8 @@ center_modules = [
 ]
 
 right_modules = [
-    "memory"
+    "memory",
+    "temperature"
 ]
 
 background = 0xffffff00

@@ -2,15 +2,20 @@ mod battery;
 mod clock;
 mod cpu;
 mod memory;
+mod temperature;
 mod workspaces;
 
 use std::fmt::Debug;
+use std::path::Path;
 use std::rc::Rc;
+use std::str::FromStr;
 use std::time::Duration;
 use std::{any::TypeId, sync::Arc};
 
 use downcast_rs::{DowncastSync, impl_downcast};
 use iced::border::Radius;
+use iced::futures::SinkExt;
+use iced::futures::channel::mpsc::Sender;
 use iced::{Border, Color, Element, Padding, Subscription};
 use toml::value::Array;
 use toml::{Table, Value};
@@ -24,6 +29,7 @@ pub mod reexports {
     pub use super::clock::Clock;
     pub use super::cpu::Cpu;
     pub use super::memory::Memory;
+    pub use super::temperature::Temperature;
     pub use super::workspaces::Workspaces;
 }
 
@@ -199,6 +205,20 @@ fn get_color(table: &Table, key: &str) -> Option<Color> {
 
 fn get_float(value: &Table, index_key: &str) -> Option<f32> {
     float_from_value(value.get(index_key)?)
+}
+
+fn value_from_file<T: FromStr>(path: impl AsRef<Path>) -> Option<T> {
+    use std::fs::read_to_string;
+
+    read_to_string(path).ok()?.trim().parse::<T>().ok()
+}
+
+fn float_to_string(float: f32) -> String {
+    format!("{float:.1}")
+}
+
+async fn send_data(sender: &mut Sender<ModuleUpdate>, data: ModuleUpdate) {
+    sender.send(data).await.expect("Broken pipe");
 }
 
 #[cfg(test)]

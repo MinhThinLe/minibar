@@ -1,5 +1,4 @@
 use std::any::TypeId;
-use std::path::Path;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -120,12 +119,6 @@ impl Module for Battery {
             status: BatteryStatus::default(),
         })
     }
-}
-
-fn value_from_file<T: FromStr>(path: impl AsRef<Path>) -> Option<T> {
-    use std::fs::read_to_string;
-
-    read_to_string(path).ok()?.trim().parse::<T>().ok()
 }
 
 fn read_battery_info() -> BatteryStatus {
