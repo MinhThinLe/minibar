@@ -12,6 +12,7 @@
                     libraries = with pkgs; [
                         libxkbcommon
                         wayland
+                        dbus
                     ];
                 in
                 pkgs.mkShell {

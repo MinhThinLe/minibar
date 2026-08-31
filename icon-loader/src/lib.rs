@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use crate::base_dirs::get_base_directories;
 use crate::theme::{Theme, ThemeName, get_current_theme_name};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct IconLoader {
     themes: Vec<Theme>,
     cache: HashMap<String, PathBuf>,
@@ -19,6 +19,12 @@ pub struct IconLoader {
 pub enum IconLoaderError {
     NoIconDirectory,
     OrphanTheme { name: String, parent: String },
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum IconSize {
+    Any,
+    Exact(u16),
 }
 
 impl Debug for IconLoaderError {
@@ -92,12 +98,7 @@ impl IconLoader {
         })
     }
 
-    pub fn query(&mut self, icon_name: &str, icon_size: u16) -> Option<PathBuf> {
-        let key = format!("{icon_name}-{icon_size}");
-        if self.cache.contains_key(&key) {
-            return self.cache.get(&key).cloned();
-        }
-
+    pub fn query_uncached(&self, icon_name: &str, icon_size: IconSize) -> Option<PathBuf> {
         let mut search_queue = vec![&self.themes[0]];
         loop {
             if search_queue.is_empty() {
@@ -105,8 +106,7 @@ impl IconLoader {
             }
 
             let theme = search_queue[0];
-            if let Some(maybe_icon) = theme.get_icon_exact(icon_name, icon_size) {
-                self.cache.insert(key, maybe_icon.clone());
+            if let Some(maybe_icon) = theme.get_icon(icon_name, icon_size) {
                 return Some(maybe_icon);
             }
 
@@ -119,6 +119,21 @@ impl IconLoader {
             search_queue.remove(0);
         }
 
+        None
+    }
+
+    pub fn query_cached(&mut self, icon_name: &str, icon_size: IconSize) -> Option<PathBuf> {
+        let key = format!("{icon_name}-{icon_size:?}"); // This is insanely hacky
+                                                        // TODO: Change the cache implementation to
+                                                        // a BTree later on
+        if self.cache.contains_key(&key) {
+            return self.cache.get(&key).cloned();
+        }
+
+        if let Some(icon) = self.query_uncached(icon_name, icon_size) {
+            self.cache.insert(key, icon.clone());
+            return Some(icon);
+        }
         None
     }
 

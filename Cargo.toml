@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = [ "minibar-derives" ]
+members = ["icon-loader", "minibar-derives" ]
 
 [package]
 name = "minibar"
@@ -11,6 +11,11 @@ edition = "2024"
 minibar-derives = {
     path = "./minibar-derives"
 }
+
+icon-loader = {
+    path = "./icon-loader"
+}
+
 chrono = {
     version = "0.4.45",
     default-features = false,
@@ -22,12 +27,13 @@ downcast-rs = "1.2.1"
 iced = { 
     git = "https://github.com/pop-os/iced.git",
     branch = "master",
-    version = "0.14.0",
     default-features = false,
     features = [
         "tiny-skia",
         "wayland",
         "winit",
+        "image",
+        "svg",
     ]
 }
 
@@ -45,3 +51,4 @@ toml = {
     default-features = false,
     features = [ "serde", "parse" ]
 }
+dbus = "0.9.12"

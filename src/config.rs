@@ -27,7 +27,7 @@ static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunc
             register_module::<Clock>(),
             register_module::<Memory>(),
             register_module::<Temperature>(),
-            // TODO: Implement systray module
+            register_module::<SysTray>(),
             // TODO: Implement bluetooth module
             // TODO: Implement group module
             // TODO: Implement audio module

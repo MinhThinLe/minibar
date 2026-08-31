@@ -2,6 +2,7 @@ mod battery;
 mod clock;
 mod cpu;
 mod memory;
+mod systray;
 mod temperature;
 mod workspaces;
 
@@ -29,6 +30,7 @@ pub mod reexports {
     pub use super::clock::Clock;
     pub use super::cpu::Cpu;
     pub use super::memory::Memory;
+    pub use super::systray::SysTray;
     pub use super::temperature::Temperature;
     pub use super::workspaces::Workspaces;
 }
@@ -217,7 +219,7 @@ fn float_to_string(float: f32) -> String {
     format!("{float:.1}")
 }
 
-async fn send_data<T: ModuleData>(sender: &mut Sender<ModuleUpdate>, destination: TypeId,  data: T) {
+async fn send_data<T: ModuleData>(sender: &mut Sender<ModuleUpdate>, destination: TypeId, data: T) {
     let packet = ModuleUpdate(destination, Arc::new(data));
     sender.send(packet).await.expect("Broken pipe");
 }

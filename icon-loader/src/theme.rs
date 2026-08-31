@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
+use crate::IconSize;
+
 const ICON_THEME_KEY: &str = "gtk-icon-theme-name";
 
 #[derive(Clone, Debug, PartialEq)]
@@ -50,13 +52,18 @@ impl Theme {
         })
     }
 
-    pub(crate) fn get_icon_exact(&self, icon_name: &str, icon_size: u16) -> Option<PathBuf> {
+    pub(crate) fn get_icon(&self, icon_name: &str, icon_size: IconSize) -> Option<PathBuf> {
         for directory in &self.directories {
-            if directory.icon_size < icon_size {
-                continue;
-            }
-            if directory.icon_size > icon_size {
-                return None;
+            match icon_size {
+                IconSize::Any => (),
+                IconSize::Exact(icon_size) => {
+                    if directory.icon_size < icon_size {
+                        continue;
+                    }
+                    if directory.icon_size > icon_size {
+                        return None;
+                    }
+                }
             }
             let maybe_icon = directory.get_icon(icon_name);
             if maybe_icon.is_some() {
