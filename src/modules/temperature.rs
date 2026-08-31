@@ -156,7 +156,7 @@ fn read_temp() -> f32 {
 
     let mut average_temp: f32 = 0.0;
     let mut entries = 0;
-    for dir in thermal_dirs.iter() {
+    for dir in &thermal_dirs {
         let Ok(thermal_type) = fs::read_to_string(dir.join(TYPE_DIR)) else {
             continue;
         };

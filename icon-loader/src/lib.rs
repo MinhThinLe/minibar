@@ -29,7 +29,7 @@ pub enum IconSize {
 
 impl Debug for IconLoaderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        <Self as Display>::fmt(&self, f)
+        <Self as Display>::fmt(self, f)
     }
 }
 
@@ -98,6 +98,7 @@ impl IconLoader {
         })
     }
 
+    #[must_use]
     pub fn query_uncached(&self, icon_name: &str, icon_size: IconSize) -> Option<PathBuf> {
         let mut search_queue = vec![&self.themes[0]];
         loop {
