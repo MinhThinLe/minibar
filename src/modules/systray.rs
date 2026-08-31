@@ -1,6 +1,7 @@
 use std::ffi::OsStr;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock, Mutex};
+use std::thread::sleep;
 
 use dbus::blocking::{Connection, Proxy};
 use dbus::channel::MatchingReceiver;
@@ -34,12 +35,16 @@ enum EventMember {
     #[default]
     NewIcon,
     NewToolTip,
+    RegisterStatusNotifierItem,
+    StatusNotifierItemRegistered,
+    StatusNotifierItemUnregistered,
 }
 
 #[derive(ModuleData, Default, Clone)]
 struct TrayEvent {
     member: EventMember,
     sender: String,
+    args: Vec<String>,
 }
 
 struct TrayItem {
@@ -68,17 +73,39 @@ impl Module for SysTray {
             .downcast_ref::<TrayEvent>()
             .expect("Who invited bro?");
         let connection = self.dbus_connection.lock().unwrap();
-        let tray_item = self
-            .tray_items
-            .iter_mut()
-            .find(|item| item.dbus_address == tray_update.sender)
-            .expect("What?");
 
         match tray_update.member {
-            EventMember::NewIcon => tray_item.update_thumbnail(&connection),
-            EventMember::NewToolTip => todo!()
+            EventMember::NewIcon | EventMember::NewToolTip => {
+                let tray_item = self
+                    .tray_items
+                    .iter_mut()
+                    .find(|item| item.dbus_address == tray_update.sender)
+                    .expect("What?");
+                tray_item.update_thumbnail(&connection);
+            }
+            EventMember::StatusNotifierItemRegistered => {}
+            EventMember::RegisterStatusNotifierItem => {
+                println!("Ran");
+                let Some(arg) = tray_update.args.first() else {
+                    return;
+                };
+                println!("Bus name: {}, Bus path: {}", tray_update.sender, arg);
+                sleep(Duration::from_millis(500));
+                if let Some(tray_item) = TrayItem::new(&connection, &tray_update.sender, arg) {
+                    self.tray_items.push(tray_item);
+                }
+            }
+            EventMember::StatusNotifierItemUnregistered => {
+                let Some(arg) = tray_update.args.first() else {
+                    return;
+                };
+                let bus_name = arg.split_once('/').unwrap_or_default().0;
+                let Some(position) = self.tray_items.iter().position(|item| item.dbus_address == bus_name) else {
+                    return;
+                };
+                self.tray_items.remove(position);
+            }
         }
-
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
@@ -101,7 +128,8 @@ impl Module for SysTray {
         let tray_items = proxy.get_registered_items().map_or(vec![], |item| {
             item.iter()
                 .filter_map(|item| {
-                    TrayItem::initialize(&connection, item.split_once('/').unwrap_or_default().0)
+                    let (bus_name, bus_path) = item.split_once('/').unwrap_or_default();
+                    TrayItem::new(&connection, bus_name, &format!("/{bus_path}"))
                 })
                 .collect()
         });
@@ -114,8 +142,8 @@ impl Module for SysTray {
 }
 
 impl TrayItem {
-    fn initialize(connection: &Connection, bus_name: &str) -> Option<Self> {
-        let proxy = connection.with_proxy(bus_name, "/StatusNotifierItem", DEFAULT_TIMEOUT);
+    fn new(connection: &Connection, bus_name: &str, bus_path: &str) -> Option<Self> {
+        let proxy = connection.with_proxy(bus_name, bus_path, DEFAULT_TIMEOUT);
         let dbus_address = bus_name.to_string();
         let thumbnail = TrayItem::get_thumbnail(&proxy)?;
 
@@ -180,10 +208,7 @@ impl TrayItem {
         if let Handle::Path(_id, path) = &self.thumbnail {
             let is_svg = path.extension() == Some(OsStr::new("svg"));
             if is_svg {
-                return svg(path)
-                    .width(Length::Shrink)
-                    .height(Length::Fill)
-                    .into();
+                return svg(path).width(Length::Shrink).height(Length::Fill).into();
             }
         }
 
@@ -194,40 +219,67 @@ impl TrayItem {
     }
 }
 
-fn request_monitor(match_rule: MatchRule, timeout: Duration) -> Result<Connection, dbus::Error> {
+fn request_monitor(
+    match_rules: &[&MatchRule],
+    timeout: Duration,
+) -> Result<Connection, dbus::Error> {
     const MONITORING_BUS_DESTINATION: &str = "org.freedesktop.DBus";
     const MONITORING_BUS_PATH: &str = "/org/freedesktop/DBus";
 
     let connection = Connection::new_session()?;
     let proxy = connection.with_proxy(MONITORING_BUS_DESTINATION, MONITORING_BUS_PATH, timeout);
 
+    let match_rules: Vec<String> = match_rules.iter().map(|rule| rule.match_str()).collect();
     proxy
-        .become_monitor(vec![&match_rule.match_str()], 0u32)
+        .become_monitor(match_rules.iter().map(String::as_str).collect(), 0u32)
         .map(|_ok_val: ()| connection)
 }
 
 fn worker() -> impl Stream<Item = ModuleUpdate> {
-    const TRAY_INTERFACE: &str = "org.kde.StatusNotifierItem";
-    const TRAY_PATH: &str = "/StatusNotifierItem";
+    const TRAY_ITEM_PATH: &str = "/StatusNotifierItem";
+    const TRAY_ITEM_INTERFACE: &str = "org.kde.StatusNotifierItem";
+
+    const TRAY_INTERFACE: &str = "org.kde.StatusNotifierWatcher";
+    const TRAY_PATH: &str = "/StatusNotifierWatcher";
+
     const TRAY_MODULE_ID: TypeId = TypeId::of::<SysTray>();
 
     stream::channel(0, async |mut output| {
-        let monitoring_rule = MatchRule::new()
+        let tray_item_update = MatchRule::new()
+            .with_path(TRAY_ITEM_PATH)
+            .with_interface(TRAY_ITEM_INTERFACE);
+        let tray_update = MatchRule::new()
             .with_path(TRAY_PATH)
             .with_interface(TRAY_INTERFACE);
 
-        let Ok(monitor) = request_monitor(monitoring_rule.clone(), DEFAULT_TIMEOUT) else {
+        let Ok(monitor) = request_monitor(&[&tray_update, &tray_item_update], DEFAULT_TIMEOUT)
+        else {
             error!("Could not start listening for events on DBus");
             return;
         };
 
         let (sender, receiver) = std::sync::mpsc::channel();
 
+        let tray_item_sender = sender.clone();
+        let tray_event_sender = sender.clone();
         monitor.start_receive(
-            monitoring_rule,
+            tray_item_update,
             Box::new(move |message, _whatever| {
-                if let Some(response) = construct_response(&message)
-                    && let Err(reason) = sender.send(response)
+                if let Some(response) = construct_tray_item_update(&message)
+                    && let Err(reason) = tray_item_sender.clone().send(response)
+                {
+                    error!("[Systray] Communication between threads failed due to {reason}");
+                }
+
+                true
+            }),
+        );
+
+        monitor.start_receive(
+            tray_update,
+            Box::new(move |message, _whatever| {
+                if let Some(response) = construct_tray_item_update(&message)
+                    && let Err(reason) = tray_event_sender.clone().send(response)
                 {
                     error!("[Systray] Communication between threads failed due to {reason}");
                 }
@@ -252,6 +304,9 @@ impl From<Member<'_>> for EventMember {
         match &*value {
             "NewIcon" => Self::NewIcon,
             "NewToolTip" => Self::NewToolTip,
+            "RegisterStatusNotifierItem" => Self::RegisterStatusNotifierItem,
+            "StatusNotifierItemRegistered" => Self::StatusNotifierItemRegistered,
+            "StatusNotifierItemUnregistered" => Self::StatusNotifierItemUnregistered,
             other => {
                 error!("Unknown tray event member {other}, assuming NewIcon as fail safe");
                 Self::NewIcon
@@ -260,7 +315,8 @@ impl From<Member<'_>> for EventMember {
     }
 }
 
-fn construct_response(message: &Message) -> Option<TrayEvent> {
+fn construct_tray_item_update(message: &Message) -> Option<TrayEvent> {
+    println!("{message:?}");
     let Some(member) = message.member().map(EventMember::from) else {
         error!("[Systray] DBus message does not contain a member, aborting");
         return None;
@@ -269,9 +325,18 @@ fn construct_response(message: &Message) -> Option<TrayEvent> {
         error!("[Systray] DBus message does not contain a sender, aborting");
         return None;
     };
+    let args = match member {
+        EventMember::NewToolTip
+        | EventMember::NewIcon
+        | EventMember::StatusNotifierItemRegistered => vec![],
+        EventMember::RegisterStatusNotifierItem | EventMember::StatusNotifierItemUnregistered => {
+            vec![message.get1().unwrap()]
+        }
+    };
 
     Some(TrayEvent {
         member,
+        args,
         sender: message_sender.to_string(),
     })
 }
