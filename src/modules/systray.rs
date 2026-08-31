@@ -2,18 +2,18 @@ use std::ffi::OsStr;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock, Mutex};
 
-use dbus::blocking::Connection;
+use dbus::blocking::{Connection, Proxy};
 use dbus::channel::MatchingReceiver;
 use dbus::message::{MatchRule, Message};
 use dbus::strings::Member;
 
 use iced::core::image::Handle;
 use iced::futures::Stream;
-use iced::widget::{image, row, svg};
+use iced::widget::{container, image, row, svg};
 use iced::{Element, Length, Subscription, stream};
 
 use icon_loader::{IconLoader, IconSize};
-use log::{error, info};
+use log::error;
 use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
 
@@ -56,19 +56,29 @@ pub struct SysTray {
 
 impl Module for SysTray {
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
-        row(self.tray_items.iter().map(TrayItem::view)).into()
-
+        row(self
+            .tray_items
+            .iter()
+            .map(|item| container(item.view()).into()))
+        .into()
     }
 
     fn update(&mut self, update_data: Arc<dyn ModuleData>) {
         let tray_update = update_data
             .downcast_ref::<TrayEvent>()
             .expect("Who invited bro?");
-
-        info!("[Systray] TODO: I should update {}", tray_update.sender);
-        let tray_item = self.tray_items.iter_mut().find(|item| item.dbus_address == tray_update.sender).expect("Unimplemented");
         let connection = self.dbus_connection.lock().unwrap();
-        tray_item.update_thumbnail(&connection);
+        let tray_item = self
+            .tray_items
+            .iter_mut()
+            .find(|item| item.dbus_address == tray_update.sender)
+            .expect("What?");
+
+        match tray_update.member {
+            EventMember::NewIcon => tray_item.update_thumbnail(&connection),
+            EventMember::NewToolTip => todo!()
+        }
+
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
@@ -106,45 +116,81 @@ impl Module for SysTray {
 impl TrayItem {
     fn initialize(connection: &Connection, bus_name: &str) -> Option<Self> {
         let proxy = connection.with_proxy(bus_name, "/StatusNotifierItem", DEFAULT_TIMEOUT);
-
-        let icon_name = proxy.icon_name().unwrap_or_default();
-        let (thumbnail, is_svg) = if let Some(icon_path) = ICON_PROVIDER.query_uncached(&icon_name, IconSize::Any) {
-            (Handle::from_path(&icon_path), &icon_path.extension() == &Some(OsStr::new("svg")))
-        } else {
-            let pixmap = proxy.icon_pixmap().map_or(vec![], |icon| icon[0].2.clone());
-            (Handle::from_bytes(pixmap), false)
-        };
+        let dbus_address = bus_name.to_string();
+        let thumbnail = TrayItem::get_thumbnail(&proxy)?;
 
         Some(Self {
-            dbus_address: bus_name.to_string(),
+            dbus_address,
             thumbnail,
-            is_svg,
+            is_svg: false,
         })
     }
 
-    fn update_thumbnail(&mut self, connection: &Connection) {
-        let proxy = connection.with_proxy(&self.dbus_address, "/StatusNotifierItem", DEFAULT_TIMEOUT);
+    fn get_thumbnail(proxy: &Proxy<'_, &Connection>) -> Option<Handle> {
+        const PREFERRED_ICON_SIZE: i32 = 22;
         let icon_name = proxy.icon_name().unwrap_or_default();
-        let (thumbnail, is_svg) = if let Some(icon_path) = ICON_PROVIDER.query_uncached(&icon_name, IconSize::Any) {
-            (Handle::from_path(&icon_path), &icon_path.extension() == &Some(OsStr::new("svg")))
-        } else {
-            let pixmap = proxy.icon_pixmap().map_or(vec![], |icon| icon[0].2.clone());
-            (Handle::from_bytes(pixmap), false)
-        };
+        if let Some(icon_path) = ICON_PROVIDER.query_uncached(&icon_name, IconSize::Any) {
+            return Some(Handle::from_path(&icon_path));
+        }
 
-        self.thumbnail = thumbnail;
-        self.is_svg = is_svg;
+        let Ok(pixmap) = proxy.icon_pixmap() else {
+            return None;
+        };
+        if pixmap.is_empty() {
+            return None;
+        }
+
+        let image_buffer = pixmap
+            .iter()
+            .min_by(|array_1, array_2| {
+                (array_1.0 - PREFERRED_ICON_SIZE)
+                    .abs()
+                    .cmp(&(array_2.0 - PREFERRED_ICON_SIZE).abs())
+            })
+            .unwrap();
+
+        let rgba = image_buffer
+            .2
+            .chunks(4)
+            .flat_map(|raw_argb| [raw_argb[1], raw_argb[2], raw_argb[3], raw_argb[0]])
+            .collect::<Vec<u8>>();
+
+        Some(Handle::from_rgba(
+            image_buffer.0.cast_unsigned(),
+            image_buffer.1.cast_unsigned(),
+            rgba,
+        ))
+    }
+
+    fn update_thumbnail(&mut self, connection: &Connection) {
+        let proxy =
+            connection.with_proxy(&self.dbus_address, "/StatusNotifierItem", DEFAULT_TIMEOUT);
+
+        if let Some(thumbnail) = Self::get_thumbnail(&proxy) {
+            self.is_svg = if let Handle::Path(_id, ref path) = thumbnail {
+                path.extension() == Some(OsStr::new("svg"))
+            } else {
+                false
+            };
+            self.thumbnail = thumbnail;
+        }
     }
 
     fn view(&self) -> Element<'_, BarEvent> {
-        if self.is_svg {
-            let Handle::Path(_id, path) = &self.thumbnail else {
-                panic!("Mislabled TrayItem as SVG when it isn't");
-            };
-            return svg(path).width(Length::Shrink).into();
+        if let Handle::Path(_id, path) = &self.thumbnail {
+            let is_svg = path.extension() == Some(OsStr::new("svg"));
+            if is_svg {
+                return svg(path)
+                    .width(Length::Shrink)
+                    .height(Length::Fill)
+                    .into();
+            }
         }
 
-        image(self.thumbnail.clone()).width(Length::Shrink).into()
+        image(self.thumbnail.clone())
+            .width(Length::Shrink)
+            .height(Length::Fill)
+            .into()
     }
 }
 

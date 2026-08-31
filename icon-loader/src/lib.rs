@@ -124,8 +124,8 @@ impl IconLoader {
 
     pub fn query_cached(&mut self, icon_name: &str, icon_size: IconSize) -> Option<PathBuf> {
         let key = format!("{icon_name}-{icon_size:?}"); // This is insanely hacky
-                                                        // TODO: Change the cache implementation to
-                                                        // a BTree later on
+        // TODO: Change the cache implementation to
+        // a BTree later on
         if self.cache.contains_key(&key) {
             return self.cache.get(&key).cloned();
         }
