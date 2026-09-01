@@ -10,7 +10,7 @@ use dbus::strings::Member;
 
 use iced::core::image::Handle;
 use iced::futures::Stream;
-use iced::widget::{container, image, row, svg};
+use iced::widget::{image, row, svg};
 use iced::{Element, Length, Subscription, stream};
 
 use icon_loader::{IconLoader, IconSize};
@@ -18,14 +18,17 @@ use log::error;
 use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
 
-use super::*;
 use crate::dbus::dbus_monitoring::OrgFreedesktopDBusMonitoring;
 use crate::dbus::status_notifier_item::OrgKdeStatusNotifierItem;
 use crate::dbus::status_notifier_watcher::OrgKdeStatusNotifierWatcher;
 
+use super::*;
+
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(1);
 const TRAY_INTERFACE_PATH: &str = "/StatusNotifierWatcher";
 const TRAY_INTERFACE_DESTINATION: &str = "org.kde.StatusNotifierWatcher";
+const DEFAULT_SPACING: u16 = 3;
+const DEFAULT_ICON_SIZE: f32 = 12.0;
 
 static ICON_PROVIDER: LazyLock<IconLoader> =
     LazyLock::new(|| IconLoader::new().unwrap_or_default());
@@ -53,58 +56,48 @@ struct TrayItem {
     is_svg: bool,
 }
 
+struct TrayConfig {
+    spacing: u16,
+    icon_size: f32,
+}
+
 #[derive(NamedModule)]
 pub struct SysTray {
     dbus_connection: Mutex<Connection>,
     tray_items: Vec<TrayItem>,
+    style: CommonStyle,
+    config: TrayConfig,
 }
 
 impl Module for SysTray {
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
-        row(self
+        let tray_items = self
             .tray_items
             .iter()
-            .map(|item| container(item.view()).into()))
-        .into()
+            .map(|item| item.view(self.config.icon_size));
+        row(tray_items)
+            .spacing(self.config.spacing)
+            .padding(self.style.padding)
+            .into()
     }
 
     fn update(&mut self, update_data: Arc<dyn ModuleData>) {
         let tray_update = update_data
             .downcast_ref::<TrayEvent>()
             .expect("Who invited bro?");
-        let connection = self.dbus_connection.lock().unwrap();
 
         match tray_update.member {
-            EventMember::NewIcon | EventMember::NewToolTip => {
-                let tray_item = self
-                    .tray_items
-                    .iter_mut()
-                    .find(|item| item.dbus_address == tray_update.sender)
-                    .expect("What?");
-                tray_item.update_thumbnail(&connection);
+            EventMember::NewIcon => self.update_icon(tray_update),
+            EventMember::NewToolTip => {
+                // TODO: Implement tooltips
             }
-            EventMember::StatusNotifierItemRegistered => {}
-            EventMember::RegisterStatusNotifierItem => {
-                println!("Ran");
-                let Some(arg) = tray_update.args.first() else {
-                    return;
-                };
-                println!("Bus name: {}, Bus path: {}", tray_update.sender, arg);
-                sleep(Duration::from_millis(500));
-                if let Some(tray_item) = TrayItem::new(&connection, &tray_update.sender, arg) {
-                    self.tray_items.push(tray_item);
-                }
+            EventMember::StatusNotifierItemRegistered => {
+                // TODO: Implement an actual tray server
+                // The current implementation only watches for changes and should not function
+                // on a system without any systray implementation
             }
-            EventMember::StatusNotifierItemUnregistered => {
-                let Some(arg) = tray_update.args.first() else {
-                    return;
-                };
-                let bus_name = arg.split_once('/').unwrap_or_default().0;
-                let Some(position) = self.tray_items.iter().position(|item| item.dbus_address == bus_name) else {
-                    return;
-                };
-                self.tray_items.remove(position);
-            }
+            EventMember::RegisterStatusNotifierItem => self.tray_item_added(tray_update),
+            EventMember::StatusNotifierItemUnregistered => self.tray_item_removed(tray_update),
         }
     }
 
@@ -134,10 +127,64 @@ impl Module for SysTray {
                 .collect()
         });
 
+        let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |spacing| spacing as u16);
+        let icon_size = get_float(table, "icon_size").unwrap_or(DEFAULT_ICON_SIZE);
+
+        let config = TrayConfig { spacing, icon_size };
+
+        let style = CommonStyle::from(table);
+
         Rc::new(Self {
             dbus_connection: Mutex::new(connection),
             tray_items,
+            style,
+            config,
         })
+    }
+}
+
+impl SysTray {
+    fn update_icon(&mut self, event: &TrayEvent) {
+        let connection = self
+            .dbus_connection
+            .lock()
+            .expect("The systray thread shouldn't panic");
+
+        let tray_item = self
+            .tray_items
+            .iter_mut()
+            .find(|item| item.dbus_address == event.sender)
+            .expect("What?");
+        tray_item.update_thumbnail(&connection);
+    }
+
+    fn tray_item_added(&mut self, event: &TrayEvent) {
+        let connection = self
+            .dbus_connection
+            .lock()
+            .expect("The systray thread panicked");
+        let Some(arg) = event.args.first() else {
+            return;
+        };
+        sleep(Duration::from_millis(500));
+        if let Some(tray_item) = TrayItem::new(&connection, &event.sender, arg) {
+            self.tray_items.push(tray_item);
+        }
+    }
+
+    fn tray_item_removed(&mut self, event: &TrayEvent) {
+        let Some(arg) = event.args.first() else {
+            return;
+        };
+        let bus_name = arg.split_once('/').unwrap_or_default().0;
+        let Some(position) = self
+            .tray_items
+            .iter()
+            .position(|item| item.dbus_address == bus_name)
+        else {
+            return;
+        };
+        self.tray_items.remove(position);
     }
 }
 
@@ -204,17 +251,20 @@ impl TrayItem {
         }
     }
 
-    fn view(&self) -> Element<'_, BarEvent> {
+    fn view(&self, icon_size: f32) -> Element<'_, BarEvent> {
         if let Handle::Path(_id, path) = &self.thumbnail {
             let is_svg = path.extension() == Some(OsStr::new("svg"));
             if is_svg {
-                return svg(path).width(Length::Shrink).height(Length::Fill).into();
+                return svg(path)
+                    .width(Length::Shrink)
+                    .height(Length::Fixed(icon_size))
+                    .into();
             }
         }
 
         image(self.thumbnail.clone())
             .width(Length::Shrink)
-            .height(Length::Fill)
+            .height(Length::Fixed(icon_size))
             .into()
     }
 }
@@ -265,8 +315,8 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
         monitor.start_receive(
             tray_item_update,
             Box::new(move |message, _whatever| {
-                if let Some(response) = construct_tray_item_update(&message)
-                    && let Err(reason) = tray_item_sender.clone().send(response)
+                if let Some(response) = construct_tray_event(&message)
+                    && let Err(reason) = tray_item_sender.send(response)
                 {
                     error!("[Systray] Communication between threads failed due to {reason}");
                 }
@@ -278,8 +328,8 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
         monitor.start_receive(
             tray_update,
             Box::new(move |message, _whatever| {
-                if let Some(response) = construct_tray_item_update(&message)
-                    && let Err(reason) = tray_event_sender.clone().send(response)
+                if let Some(response) = construct_tray_event(&message)
+                    && let Err(reason) = tray_event_sender.send(response)
                 {
                     error!("[Systray] Communication between threads failed due to {reason}");
                 }
@@ -315,8 +365,7 @@ impl From<Member<'_>> for EventMember {
     }
 }
 
-fn construct_tray_item_update(message: &Message) -> Option<TrayEvent> {
-    println!("{message:?}");
+fn construct_tray_event(message: &Message) -> Option<TrayEvent> {
     let Some(member) = message.member().map(EventMember::from) else {
         error!("[Systray] DBus message does not contain a member, aborting");
         return None;
