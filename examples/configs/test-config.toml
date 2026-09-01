@@ -43,4 +43,4 @@ border = {
 }
 
 [systray]
-icon_size = 32
+preferred_icon_size = 22

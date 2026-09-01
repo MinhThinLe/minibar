@@ -28,7 +28,7 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(1);
 const TRAY_INTERFACE_PATH: &str = "/StatusNotifierWatcher";
 const TRAY_INTERFACE_DESTINATION: &str = "org.kde.StatusNotifierWatcher";
 const DEFAULT_SPACING: u16 = 3;
-const DEFAULT_ICON_SIZE: f32 = 12.0;
+const DEFAULT_ICON_SIZE: f32 = 22.0;
 
 static ICON_PROVIDER: LazyLock<IconLoader> =
     LazyLock::new(|| IconLoader::new().unwrap_or_default());
@@ -109,6 +109,13 @@ impl Module for SysTray {
     where
         Self: Sized,
     {
+        let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |spacing| spacing as u16);
+        let icon_size = get_float(table, "preferred_icon_size").unwrap_or(DEFAULT_ICON_SIZE);
+
+        let config = TrayConfig { spacing, icon_size };
+
+        let style = CommonStyle::from(table);
+
         let connection = Connection::new_session()
             .expect("Could not establish a connection to DBus, is it even running?");
 
@@ -122,17 +129,10 @@ impl Module for SysTray {
             item.iter()
                 .filter_map(|item| {
                     let (bus_name, bus_path) = item.split_once('/').unwrap_or_default();
-                    TrayItem::new(&connection, bus_name, &format!("/{bus_path}"))
+                    TrayItem::new(&connection, bus_name, &format!("/{bus_path}"), icon_size)
                 })
                 .collect()
         });
-
-        let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |spacing| spacing as u16);
-        let icon_size = get_float(table, "icon_size").unwrap_or(DEFAULT_ICON_SIZE);
-
-        let config = TrayConfig { spacing, icon_size };
-
-        let style = CommonStyle::from(table);
 
         Rc::new(Self {
             dbus_connection: Mutex::new(connection),
@@ -155,7 +155,7 @@ impl SysTray {
             .iter_mut()
             .find(|item| item.dbus_address == event.sender)
             .expect("What?");
-        tray_item.update_thumbnail(&connection);
+        tray_item.update_thumbnail(&connection, self.config.icon_size as i32);
     }
 
     fn tray_item_added(&mut self, event: &TrayEvent) {
@@ -167,7 +167,9 @@ impl SysTray {
             return;
         };
         sleep(Duration::from_millis(500));
-        if let Some(tray_item) = TrayItem::new(&connection, &event.sender, arg) {
+        if let Some(tray_item) =
+            TrayItem::new(&connection, &event.sender, arg, self.config.icon_size)
+        {
             self.tray_items.push(tray_item);
         }
     }
@@ -189,10 +191,15 @@ impl SysTray {
 }
 
 impl TrayItem {
-    fn new(connection: &Connection, bus_name: &str, bus_path: &str) -> Option<Self> {
+    fn new(
+        connection: &Connection,
+        bus_name: &str,
+        bus_path: &str,
+        icon_size: f32,
+    ) -> Option<Self> {
         let proxy = connection.with_proxy(bus_name, bus_path, DEFAULT_TIMEOUT);
         let dbus_address = bus_name.to_string();
-        let thumbnail = TrayItem::get_thumbnail(&proxy)?;
+        let thumbnail = TrayItem::get_thumbnail(&proxy, icon_size as i32)?;
 
         Some(Self {
             dbus_address,
@@ -201,9 +208,18 @@ impl TrayItem {
         })
     }
 
-    fn get_thumbnail(proxy: &Proxy<'_, &Connection>) -> Option<Handle> {
-        const PREFERRED_ICON_SIZE: i32 = 22;
+    fn get_thumbnail(
+        proxy: &Proxy<'_, &Connection>,
+        preferred_icon_size: i32,
+    ) -> Option<Handle> {
         let icon_name = proxy.icon_name().unwrap_or_default();
+        if let Some(icon_path) = ICON_PROVIDER.query_uncached(
+            &icon_name,
+            IconSize::Exact(preferred_icon_size as u16),
+        ) {
+            return Some(Handle::from_path(&icon_path));
+        }
+
         if let Some(icon_path) = ICON_PROVIDER.query_uncached(&icon_name, IconSize::Any) {
             return Some(Handle::from_path(&icon_path));
         }
@@ -218,9 +234,9 @@ impl TrayItem {
         let image_buffer = pixmap
             .iter()
             .min_by(|array_1, array_2| {
-                (array_1.0 - PREFERRED_ICON_SIZE)
+                (array_1.0 - preferred_icon_size)
                     .abs()
-                    .cmp(&(array_2.0 - PREFERRED_ICON_SIZE).abs())
+                    .cmp(&(array_2.0 - preferred_icon_size).abs())
             })
             .unwrap();
 
@@ -237,11 +253,11 @@ impl TrayItem {
         ))
     }
 
-    fn update_thumbnail(&mut self, connection: &Connection) {
+    fn update_thumbnail(&mut self, connection: &Connection, icon_size: i32) {
         let proxy =
             connection.with_proxy(&self.dbus_address, "/StatusNotifierItem", DEFAULT_TIMEOUT);
 
-        if let Some(thumbnail) = Self::get_thumbnail(&proxy) {
+        if let Some(thumbnail) = Self::get_thumbnail(&proxy, icon_size) {
             self.is_svg = if let Handle::Path(_id, ref path) = thumbnail {
                 path.extension() == Some(OsStr::new("svg"))
             } else {
