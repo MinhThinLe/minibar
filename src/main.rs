@@ -37,7 +37,14 @@ pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     let Ok(content) = fs::read_to_string(config_file) else {
         return Table::default();
     };
-    content.parse::<Table>().unwrap_or_default()
+
+    match content.parse() {
+        Ok(table) => table,
+        Err(err) => {
+            error!("{err}");
+            std::process::exit(1)
+        }
+    }
 });
 
 static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {

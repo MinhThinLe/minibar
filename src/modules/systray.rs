@@ -208,15 +208,11 @@ impl TrayItem {
         })
     }
 
-    fn get_thumbnail(
-        proxy: &Proxy<'_, &Connection>,
-        preferred_icon_size: i32,
-    ) -> Option<Handle> {
+    fn get_thumbnail(proxy: &Proxy<'_, &Connection>, preferred_icon_size: i32) -> Option<Handle> {
         let icon_name = proxy.icon_name().unwrap_or_default();
-        if let Some(icon_path) = ICON_PROVIDER.query_uncached(
-            &icon_name,
-            IconSize::Exact(preferred_icon_size as u16),
-        ) {
+        if let Some(icon_path) =
+            ICON_PROVIDER.query_uncached(&icon_name, IconSize::Exact(preferred_icon_size as u16))
+        {
             return Some(Handle::from_path(&icon_path));
         }
 

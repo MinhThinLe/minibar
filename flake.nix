@@ -13,10 +13,11 @@
                         libxkbcommon
                         wayland
                         dbus
+                        libpulseaudio
                     ];
                 in
                 pkgs.mkShell {
-                    buildInputs = with pkgs; [
+                    nativeBuildInputs = with pkgs; [
                         cargo
                         clippy
                         pkg-config

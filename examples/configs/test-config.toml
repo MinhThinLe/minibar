@@ -12,6 +12,7 @@ center_modules = [
 ]
 
 right_modules = [
+    "pipewire",
     "memory",
     "temperature"
 ]

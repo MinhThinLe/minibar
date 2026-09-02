@@ -2,6 +2,7 @@ mod battery;
 mod clock;
 mod cpu;
 mod memory;
+mod pipewire;
 mod systray;
 mod temperature;
 mod workspaces;
@@ -30,6 +31,7 @@ pub mod reexports {
     pub use super::clock::Clock;
     pub use super::cpu::Cpu;
     pub use super::memory::Memory;
+    pub use super::pipewire::PipeWire;
     pub use super::systray::SysTray;
     pub use super::temperature::Temperature;
     pub use super::workspaces::Workspaces;
