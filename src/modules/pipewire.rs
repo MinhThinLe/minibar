@@ -5,15 +5,17 @@ use std::sync::{Arc, mpsc};
 use std::time::Duration;
 use std::{process::Command, rc::Rc};
 
-use iced::widget::text;
+use iced::Background;
+use iced::widget::{container, text};
 use iced::{Element, Subscription, futures::Stream, stream};
 use log::error;
 use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
 
-use crate::modules::send_data;
+use super::*;
 
-use super::{BarEvent, Module, ModuleData, ModuleUpdate, NamedModule, Output};
+const DEFAULT_FORMAT: &str = "VOL: {volume_level}";
+const DEFAULT_FORMAT_MUTED: &str = "MUTED";
 
 #[derive(ModuleData)]
 enum PipeWireUpdate {
@@ -26,9 +28,18 @@ struct Volume {
     is_muted: bool,
 }
 
+struct PipeWireConfig {
+    format: Box<str>,
+    format_muted: Box<str>,
+    icons: Vec<char>,
+    icon_muted: Box<str>,
+}
+
 #[derive(NamedModule)]
 pub struct PipeWire {
     volume: Volume,
+    config: PipeWireConfig,
+    style: CommonStyle,
 }
 
 impl Module for PipeWire {
@@ -40,25 +51,91 @@ impl Module for PipeWire {
             PipeWireUpdate::Volume(volume) => self.volume = *volume,
         }
     }
+
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
-        text!(
-            "Volume: {}, is muted: {}",
-            self.volume.level,
-            self.volume.is_muted
-        )
-        .into()
+        container(text(self.get_text())).style(|_theme| container::Style {
+            text_color: self.style.foreground,
+            background: self.get_background(),
+            border: self.style.border,
+            ..Default::default()
+        }).into()
     }
+
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
         Some(Subscription::run(worker))
     }
-    fn new_or_default(_table: &Table) -> Rc<dyn Module>
+
+    fn new_or_default(table: &Table) -> Rc<dyn Module>
     where
         Self: Sized,
     {
+        let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT).into();
+        let format_muted = get_str(table, "format_muted")
+            .unwrap_or(DEFAULT_FORMAT_MUTED)
+            .into();
+
+        let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
+        let icon_muted = get_str(table, "icon_muted").unwrap_or_default().into();
+
+        let config = PipeWireConfig {
+            format,
+            format_muted,
+            icons,
+            icon_muted,
+        };
+        let style = CommonStyle::from(table);
+
         Rc::new(Self {
             volume: get_new_volume(),
+            config,
+            style,
         })
     }
+}
+
+impl PipeWire {
+    fn get_text(&self) -> String {
+        if self.volume.is_muted {
+            return self.format(&self.config.format_muted);
+        }
+        
+        self.format(&self.config.format)
+    }
+
+    fn format(&self, format_str: &str) -> String {
+        format_str.replace("{icon}", &self.get_icon().to_string())
+            .replace("{icon_muted}", &self.config.icon_muted)
+            .replace("{volume}", &self.volume.level.to_string())
+    }
+
+    fn get_icon(&self) -> char {
+        const ASSUMED_MAX_VOLUME: u16 = 100;
+        if self.config.icons.is_empty() {
+            return char::default();
+        }
+
+        let levels = self.config.icons.len() as u16;
+        let step = ASSUMED_MAX_VOLUME / levels;
+
+        for level in 1..levels {
+            if self.volume.level < level * step {
+                return self.config.icons[level as usize - 1];
+            }
+        }
+
+        self.config.icons.last().copied().unwrap_or_default()
+    }
+
+    fn get_background(&self) -> Option<Background> {
+        Some(Background::Color(self.style.background?))
+    }
+}
+
+fn to_icon_list(icons_str: &str) -> Vec<char> {
+    icons_str
+        .chars()
+        .filter(|char| !char.is_whitespace())
+        .collect()
 }
 
 fn worker() -> impl Stream<Item = ModuleUpdate> {
@@ -91,7 +168,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
                 buffer.clear();
                 let _bytes = reader.read_line(&mut buffer).expect("Child process died?");
                 sender
-                    .send(_bytes)
+                    .send(())
                     .expect("Could not send data between channels");
             }
         });

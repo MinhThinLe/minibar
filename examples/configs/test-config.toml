@@ -1,5 +1,5 @@
 [bar]
-font = "JetBrainsMono NFM"
+font = "JetBrainsMono NFP"
 size = 32
 left_modules = [
     "battery",
@@ -45,3 +45,9 @@ border = {
 
 [systray]
 preferred_icon_size = 22
+
+[pipewire]
+format = "{icon} {volume}%"
+format_muted = "{icon_muted} muted"
+icons = ""
+icon_muted = ""
