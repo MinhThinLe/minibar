@@ -35,7 +35,7 @@ pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     info!("Using config from {}", config_file.display());
 
     let Ok(content) = fs::read_to_string(config_file) else {
-        return Table::default();
+        return Table::default();;
     };
 
     match content.parse() {

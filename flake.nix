@@ -1,36 +1,37 @@
 {
-    description = "A very basic flake";
+    description = "A status bar that aims to do less";
 
     inputs = {
         nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     };
 
-    outputs = inputs: {
+    outputs = { self, nixpkgs }: {
+        packages = builtins.mapAttrs (system: pkgs: {
+            minibar = pkgs.callPackage ./nix/package.nix { };
+            default = self.packages.${pkgs.stdenv.hostPlatform.system}.minibar;
+        }) nixpkgs.legacyPackages;
+
         devShells = builtins.mapAttrs (system: pkgs: {
             default =
                 let
-                    libraries = with pkgs; [
-                        libxkbcommon
-                        wayland
-                        dbus
-                        libpulseaudio
-                    ];
+                    shared = import ./nix/shared.nix { inherit pkgs; };
                 in
                 pkgs.mkShell {
-                    nativeBuildInputs = with pkgs; [
-                        cargo
-                        clippy
-                        pkg-config
-                        rust-analyzer
-                        rustc
-                        rustfmt
-                    ] ++ libraries;
+                    nativeBuildInputs =
+                        with pkgs;
+                        [
+                            cargo
+                            clippy
+                            pkg-config
+                            rust-analyzer
+                            rustc
+                            rustfmt
+                        ]
+                        ++ shared.pkgConfigLibs;
 
-                    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath libraries;
-                    PKG_CONFIG_PATH = pkgs.lib.strings.concatStringsSep ":" (
-                        builtins.map (lib: "${pkgs.lib.getDev lib}/lib/pkgconfig/") libraries
-                    );
+                    LD_LIBRARY_PATH = shared.libraryPaths;
+                    PKG_CONFIG_PATH = shared.pkgConfigLibs;
                 };
-        }) inputs.nixpkgs.legacyPackages;
+        }) nixpkgs.legacyPackages;
     };
 }
