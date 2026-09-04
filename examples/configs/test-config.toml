@@ -52,3 +52,6 @@ format = "{icon} {volume}%"
 format_muted = "{icon_muted} muted"
 icons = ""
 icon_muted = ""
+
+[custom-module]
+command = "heyheyhey"

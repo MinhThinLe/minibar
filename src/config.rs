@@ -45,16 +45,19 @@ impl From<&Table> for Bar {
             return Bar::default();
         };
 
-        let module_registry = parse_modules(value);
-        let get_module = |key| -> Option<Vec<Rc<dyn Module>>> {
+        let get_module_list = |key| -> Option<Array> {
             let modules = bar_config.get(key)?;
-            let modules = modules.as_array()?;
-            Some(get_module_list(modules, &module_registry))
+            Some(modules.as_array()?.to_vec())
         };
 
-        let left_modules = get_module("left_modules").unwrap_or_default();
-        let center_modules = get_module("center_modules").unwrap_or_default();
-        let right_modules = get_module("right_modules").unwrap_or_default();
+        let left_modules_name = get_module_list("left_modules").unwrap_or_default();
+        let left_modules = get_modules(value, &left_modules_name);
+
+        let center_modules_name = get_module_list("center_modules").unwrap_or_default();
+        let center_modules = get_modules(value, &center_modules_name);
+
+        let right_modules_name = get_module_list("right_modules").unwrap_or_default();
+        let right_modules = get_modules(value, &right_modules_name);
 
         let theme = get_theme(bar_config);
 
@@ -68,51 +71,81 @@ impl From<&Table> for Bar {
     }
 }
 
-fn get_module_list(
-    array: &Array,
-    module_registry: &HashMap<String, Rc<dyn Module>>,
-) -> Vec<Rc<dyn Module>> {
-    let mut modules = Vec::with_capacity(array.len());
-    for item in array {
-        let Some(module_name) = item.as_str() else {
-            warn!("Found non-string value in module array, skipping");
+fn get_modules(config_table: &Table, module_name_list: &Array) -> Vec<Rc<dyn Module>> {
+    let mut modules = Vec::new();
+    for module in module_name_list {
+        let Some(module_name) = module.as_str() else {
+            warn!("{module:?} isn't a string, which it should");
             continue;
         };
-        if let Some(module) = module_registry.get(module_name) {
-            modules.push(module.clone());
-        } else {
-            // todo!("Implement custom modules");
-            // warn!("Couldn't locate module with name {module_name}");
-        }
+        let Some(module_init_function) = FACTORY_FUNCTIONS.get(module_name) else {
+            if let Some(custom_module) = get_custom_module(config_table, module_name) {
+                modules.push(custom_module);
+            }
+            continue;
+        };
+        let module_config = || -> Option<Table> {
+            let module_config = config_table.get(module_name)?;
+            module_config.as_table().cloned()
+        }()
+        .unwrap_or_default();
+
+        modules.push(module_init_function(&module_config));
     }
+
     modules
 }
 
-fn parse_modules(table: &Table) -> HashMap<String, Rc<dyn Module>> {
-    let mut modules: HashMap<String, Rc<dyn Module>> = FACTORY_FUNCTIONS
+fn has_valid_config(is_group: bool, is_script: bool) -> bool {
+    let check = [is_group, is_script]
         .iter()
-        .map(|(module_name, init_function)| (module_name.to_string(), init_function(&Table::new())))
-        .collect();
-
-    for (key, value) in table {
-        if key == "bar" {
-            continue;
-        }
-
-        let Some(init_function) = FACTORY_FUNCTIONS.get(key.as_str()) else {
-            error!("Module {key} doesn't exists and custom modules aren't implemented yet");
-            continue;
-        };
-
-        let Some(table) = value.as_table() else {
-            error!("item {key} must be a table, skipping");
-            continue;
-        };
-
-        modules.insert(key.clone(), init_function(table));
+        .map(|bool| *bool as u8)
+        .sum::<u8>();
+    if check == 0 {
+        error!("Undefined custom module type, should be either group or script");
+        return false;
+    }
+    if check > 1 {
+        error!("A custom module can't be of more than 1 type");
+        return false;
     }
 
-    modules
+    true
+}
+
+fn get_custom_module(config_table: &Table, module_name: &str) -> Option<Rc<dyn Module>> {
+    let Some(module_config) = config_table.get(module_name) else {
+        error!(
+            "{module_name} is used but no definition for it was found, define it by adding a table named {module_name} to your configuration."
+        );
+        return None;
+    };
+    let Some(module_config) = module_config.as_table() else {
+        error!("{module_name} has a non table value for configuration");
+        return None;
+    };
+
+    let is_group = module_config
+        .get("group")
+        .map_or(false, |module_list| module_list.as_array().is_some());
+    let is_script = module_config
+        .get("command")
+        .map_or(false, |command| command.as_str().is_some());
+
+    if !has_valid_config(is_group, is_script) {
+        return None;
+    }
+
+    if is_script {
+        return Some(Script::new_or_default(module_config));
+    }
+
+    if is_group {
+        error!("Group module isn't implemented yet");
+        return None;
+    }
+
+    None
 }
 
 fn get_theme(table: &Value) -> Theme {

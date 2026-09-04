@@ -3,6 +3,7 @@ mod clock;
 mod cpu;
 mod memory;
 mod pipewire;
+mod script;
 mod systray;
 mod temperature;
 mod workspaces;
@@ -11,8 +12,8 @@ use std::fmt::Debug;
 use std::path::Path;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::time::Duration;
 use std::sync::Arc;
+use std::time::Duration;
 
 use downcast_rs::{DowncastSync, impl_downcast};
 use iced::border::Radius;
@@ -33,6 +34,7 @@ pub mod reexports {
     pub use super::cpu::Cpu;
     pub use super::memory::Memory;
     pub use super::pipewire::PipeWire;
+    pub use super::script::Script;
     pub use super::systray::SysTray;
     pub use super::temperature::Temperature;
     pub use super::workspaces::Workspaces;
