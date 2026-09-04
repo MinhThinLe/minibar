@@ -48,9 +48,9 @@ impl Bar {
     pub fn update(&mut self, message: BarEvent) -> Task<BarEvent> {
         match message {
             BarEvent::ModuleUpdate(module_update) => {
-                let type_id = module_update.0;
+                let target_id = module_update.0;
                 self.all_modules_mut()
-                    .filter(|module| module.type_id() == type_id)
+                    .filter(|module| module.id().contains(&target_id))
                     .for_each(|module| module.update(module_update.1.clone()));
                 Task::none()
             }

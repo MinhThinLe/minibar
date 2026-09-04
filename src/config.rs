@@ -81,7 +81,8 @@ fn get_module_list(
         if let Some(module) = module_registry.get(module_name) {
             modules.push(module.clone());
         } else {
-            warn!("Couldn't locate module with name {module_name}");
+            // todo!("Implement custom modules");
+            // warn!("Couldn't locate module with name {module_name}");
         }
     }
     modules

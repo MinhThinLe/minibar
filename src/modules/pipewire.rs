@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 use std::sync::{Arc, mpsc};
@@ -11,6 +10,8 @@ use iced::{Element, Subscription, futures::Stream, stream};
 use log::error;
 use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
+
+use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -40,6 +41,7 @@ pub struct PipeWire {
     volume: Volume,
     config: PipeWireConfig,
     style: CommonStyle,
+    id: [ModuleId; 1],
 }
 
 impl Module for PipeWire {
@@ -53,16 +55,20 @@ impl Module for PipeWire {
     }
 
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
-        container(text(self.get_text())).style(|_theme| container::Style {
-            text_color: self.style.foreground,
-            background: self.get_background(),
-            border: self.style.border,
-            ..Default::default()
-        }).into()
+        container(text(self.get_text()))
+            .style(|_theme| container::Style {
+                text_color: self.style.foreground,
+                background: self.get_background(),
+                border: self.style.border,
+                ..Default::default()
+            })
+            .into()
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run(worker))
+        Some(Subscription::run_with(self.id[0], |destination| {
+            worker(*destination)
+        }))
     }
 
     fn new_or_default(table: &Table) -> Rc<dyn Module>
@@ -85,11 +91,18 @@ impl Module for PipeWire {
         };
         let style = CommonStyle::from(table);
 
+        let id = [module_id_unique()];
+
         Rc::new(Self {
             volume: get_new_volume(),
             config,
             style,
+            id,
         })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 
@@ -98,12 +111,13 @@ impl PipeWire {
         if self.volume.is_muted {
             return self.format(&self.config.format_muted);
         }
-        
+
         self.format(&self.config.format)
     }
 
     fn format(&self, format_str: &str) -> String {
-        format_str.replace("{icon}", &self.get_icon().to_string())
+        format_str
+            .replace("{icon}", &self.get_icon().to_string())
             .replace("{icon_muted}", &self.config.icon_muted)
             .replace("{volume}", &self.volume.level.to_string())
     }
@@ -138,16 +152,14 @@ fn to_icon_list(icons_str: &str) -> Vec<char> {
         .collect()
 }
 
-fn worker() -> impl Stream<Item = ModuleUpdate> {
+fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
     /*
      * Fuck this pure rust binding shits, I just wanted to get the default sink's current volume,
      * not perform some gymnastic. This module gets the current module by waiting `pw-mon` for
      * changes and read `wpctl get-volume @DEFAULT_AUDIO_SINK` when changes do happen. This is
      * insanely hacky. Deal with it.
      */
-    const PIPEWIRE_MODULE_ID: TypeId = TypeId::of::<PipeWire>();
-
-    stream::channel(0, async |mut output| {
+    stream::channel(0, async move |mut output| {
         let (sender, receiver) = mpsc::channel();
 
         std::thread::spawn(move || {
@@ -176,7 +188,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
         loop {
             const MAXIMUM_CHANNEL_LATENCY: Duration = Duration::from_millis(10);
             match receiver.recv_timeout(MAXIMUM_CHANNEL_LATENCY) {
-                Ok(_) => {}
+                Ok(()) => {}
                 Err(mpsc::RecvTimeoutError::Timeout) => {
                     /*
                      * Remeber what I said about how janky this is?, turns out, calling `wpctl`
@@ -200,7 +212,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
                      */
                     let _ = receiver.recv();
                     let event = PipeWireUpdate::Volume(get_new_volume());
-                    send_data(&mut output, PIPEWIRE_MODULE_ID, event).await;
+                    send_data(&mut output, module_id, event).await;
                 }
                 _ => return,
             }

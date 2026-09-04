@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -9,6 +8,8 @@ use iced::widget::{container, text};
 use iced::{Background, Color, Element, Subscription, stream};
 use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
+
+use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -39,6 +40,7 @@ pub struct Battery {
     status: BatteryStatus,
     config: BatteryConfig,
     style: CommonStyle,
+    id: [ModuleId; 1],
 }
 
 impl FromStr for BatteryState {
@@ -95,7 +97,9 @@ impl Module for Battery {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run(worker))
+        Some(Subscription::run_with(self.id[0], |destination| {
+            worker(*destination)
+        }))
     }
 
     fn new_or_default(table: &Table) -> Rc<dyn Module>
@@ -113,11 +117,18 @@ impl Module for Battery {
             critical_foreground,
         };
 
+        let id = [module_id_unique()];
+
         Rc::new(Self {
             config,
             style,
             status: BatteryStatus::default(),
+            id,
         })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 
@@ -135,14 +146,12 @@ fn read_battery_info() -> BatteryStatus {
     BatteryStatus { percentage, state }
 }
 
-fn worker() -> impl Stream<Item = ModuleUpdate> {
-    const TYPE_ID: TypeId = TypeId::of::<Battery>();
-
-    stream::channel(0, async |mut output| {
+fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+    stream::channel(0, async move |mut output| {
         let poll_interval = get_poll_interval("battery");
         let mut content = read_battery_info();
 
-        send_data(&mut output, TYPE_ID, content).await;
+        send_data(&mut output, module_id, content).await;
         loop {
             sleep(poll_interval);
             let new_content = read_battery_info();
@@ -151,7 +160,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
                 continue;
             }
 
-            send_data(&mut output, TYPE_ID, content).await;
+            send_data(&mut output, module_id, content).await;
             content = new_content;
         }
     })

@@ -21,6 +21,7 @@ use toml::Table;
 use crate::dbus::dbus_monitoring::OrgFreedesktopDBusMonitoring;
 use crate::dbus::status_notifier_item::OrgKdeStatusNotifierItem;
 use crate::dbus::status_notifier_watcher::OrgKdeStatusNotifierWatcher;
+use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -67,6 +68,7 @@ pub struct SysTray {
     tray_items: Vec<TrayItem>,
     style: CommonStyle,
     config: TrayConfig,
+    id: [ModuleId; 1],
 }
 
 impl Module for SysTray {
@@ -102,7 +104,9 @@ impl Module for SysTray {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run(worker))
+        Some(Subscription::run_with(self.id[0], |destination| {
+            worker(*destination)
+        }))
     }
 
     fn new_or_default(table: &Table) -> Rc<dyn Module>
@@ -134,12 +138,19 @@ impl Module for SysTray {
                 .collect()
         });
 
+        let id = [module_id_unique()];
+
         Rc::new(Self {
             dbus_connection: Mutex::new(connection),
             tray_items,
             style,
             config,
+            id,
         })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 
@@ -297,16 +308,14 @@ fn request_monitor(
         .map(|_ok_val: ()| connection)
 }
 
-fn worker() -> impl Stream<Item = ModuleUpdate> {
+fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
     const TRAY_ITEM_PATH: &str = "/StatusNotifierItem";
     const TRAY_ITEM_INTERFACE: &str = "org.kde.StatusNotifierItem";
 
     const TRAY_INTERFACE: &str = "org.kde.StatusNotifierWatcher";
     const TRAY_PATH: &str = "/StatusNotifierWatcher";
 
-    const TRAY_MODULE_ID: TypeId = TypeId::of::<SysTray>();
-
-    stream::channel(0, async |mut output| {
+    stream::channel(0, async move |mut output| {
         let tray_item_update = MatchRule::new()
             .with_path(TRAY_ITEM_PATH)
             .with_interface(TRAY_ITEM_INTERFACE);
@@ -355,7 +364,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
                 .process(DEFAULT_TIMEOUT)
                 .expect("DBus connection dropped");
             if let Ok(event) = receiver.try_recv() {
-                send_data(&mut output, TRAY_MODULE_ID, event).await;
+                send_data(&mut output, module_id, event).await;
             }
         }
     })

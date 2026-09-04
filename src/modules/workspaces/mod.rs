@@ -1,6 +1,5 @@
 mod niri;
 
-use std::any::TypeId;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -14,6 +13,7 @@ use minibar_derives::{ModuleData, NamedModule};
 use toml::Table;
 
 use crate::bar::Output;
+use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -58,6 +58,7 @@ pub struct Workspaces {
     workspaces: Vec<Workspace>,
     config: WorkspacesConfig,
     style: CommonStyle,
+    id: [ModuleId; 1],
 }
 
 impl Module for Workspaces {
@@ -96,7 +97,9 @@ impl Module for Workspaces {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run(worker))
+        Some(Subscription::run_with(self.id[0], |destination| {
+            worker(*destination)
+        }))
     }
 
     fn new_or_default(table: &Table) -> Rc<dyn Module>
@@ -115,11 +118,18 @@ impl Module for Workspaces {
             spacing,
         };
 
+        let id = [module_id_unique()];
+
         Rc::new(Self {
             workspaces: Vec::new(),
             config,
             style,
+            id,
         })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 
@@ -191,10 +201,8 @@ fn try_create_backend() -> Option<Box<dyn IpcBackend>> {
     None
 }
 
-fn worker() -> impl Stream<Item = ModuleUpdate> {
-    const MODULE_ID: TypeId = TypeId::of::<Workspaces>();
-
-    stream::channel(0, async |mut output| {
+fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+    stream::channel(0, async move |mut output| {
         let Some(mut ipc_backend) = try_create_backend() else {
             warn!("Unsupported compositor");
             return;
@@ -203,7 +211,7 @@ fn worker() -> impl Stream<Item = ModuleUpdate> {
             let Some(event) = ipc_backend.next_event() else {
                 continue;
             };
-            send_data(&mut output, MODULE_ID, event).await;
+            send_data(&mut output, module_id, event).await;
         }
     })
 }

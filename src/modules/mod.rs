@@ -12,7 +12,7 @@ use std::path::Path;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Duration;
-use std::{any::TypeId, sync::Arc};
+use std::sync::Arc;
 
 use downcast_rs::{DowncastSync, impl_downcast};
 use iced::border::Radius;
@@ -24,6 +24,7 @@ use toml::{Table, Value};
 
 use crate::CONFIG;
 use crate::bar::{BarEvent, Output};
+use crate::modules::module_id::ModuleId;
 
 pub mod reexports {
     pub use super::Module;
@@ -37,10 +38,28 @@ pub mod reexports {
     pub use super::workspaces::Workspaces;
 }
 
+mod module_id {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static MODULE_ID: AtomicU64 = AtomicU64::new(0);
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct ModuleId(u64);
+
+    pub(super) fn module_id_unique() -> ModuleId {
+        ModuleId(MODULE_ID.fetch_add(1, Ordering::Relaxed))
+    }
+
+    #[test]
+    fn module_id_unique_is_actually_unique() {
+        assert_ne!(module_id_unique(), module_id_unique())
+    }
+}
+
 const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 #[derive(Clone)]
-pub struct ModuleUpdate(pub TypeId, pub Arc<dyn ModuleData>);
+pub struct ModuleUpdate(pub ModuleId, pub Arc<dyn ModuleData>);
 
 #[derive(Debug, Default)]
 pub struct CommonStyle {
@@ -57,6 +76,7 @@ pub trait Module: DowncastSync {
     fn update(&mut self, update_data: Arc<dyn ModuleData>);
     fn view(&self, output: &Output) -> Element<'_, BarEvent>;
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>>;
+    fn id(&self) -> &[ModuleId];
     fn new_or_default(table: &Table) -> Rc<dyn Module>
     where
         Self: Sized;
@@ -221,7 +241,11 @@ fn float_to_string(float: f32) -> String {
     format!("{float:.1}")
 }
 
-async fn send_data<T: ModuleData>(sender: &mut Sender<ModuleUpdate>, destination: TypeId, data: T) {
+async fn send_data<T: ModuleData>(
+    sender: &mut Sender<ModuleUpdate>,
+    destination: ModuleId,
+    data: T,
+) {
     let packet = ModuleUpdate(destination, Arc::new(data));
     sender.send(packet).await.expect("Broken pipe");
 }

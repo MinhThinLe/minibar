@@ -5,6 +5,8 @@ use iced::{
 };
 use minibar_derives::NamedModule;
 
+use crate::modules::module_id::module_id_unique;
+
 use super::*;
 
 const DEFAULT_FORMAT: &str = "%R";
@@ -17,6 +19,7 @@ struct ClockConfig {
 pub struct Clock {
     config: ClockConfig,
     style: CommonStyle,
+    id: [ModuleId; 1],
 }
 
 impl Module for Clock {
@@ -48,7 +51,13 @@ impl Module for Clock {
 
         let config = ClockConfig { format };
 
-        Rc::new(Self { config, style })
+        let id = [module_id_unique()];
+
+        Rc::new(Self { config, style, id })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 

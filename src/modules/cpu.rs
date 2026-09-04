@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::rc::Rc;
@@ -9,6 +8,8 @@ use iced::futures::Stream;
 use iced::widget::{container, text};
 use iced::{Background, Color, Subscription, stream};
 use minibar_derives::{ModuleData, NamedModule};
+
+use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -25,7 +26,7 @@ struct CoreStat {
     total: i64,
 }
 
-#[derive(Default, Clone, ModuleData)]
+#[derive(Clone, ModuleData)]
 struct CoresStat(Vec<CoreStat>);
 
 #[derive(Debug, Clone, Copy)]
@@ -41,22 +42,13 @@ struct CpuConfig {
     critical_foreground: Option<Color>,
 }
 
-#[derive(Default, NamedModule)]
+#[derive(NamedModule)]
 pub struct Cpu {
     current_core_stats: CoresStat,
     last_core_stats: CoresStat,
     config: CpuConfig,
     style: CommonStyle,
-}
-
-impl Default for CpuConfig {
-    fn default() -> Self {
-        Self {
-            format: DEFAULT_FORMAT.into(),
-            critical_threshold: DEFAULT_CRITICAL_THRESHOLD,
-            critical_foreground: None,
-        }
-    }
+    id: [ModuleId; 1],
 }
 
 impl Module for Cpu {
@@ -72,7 +64,7 @@ impl Module for Cpu {
             .into()
     }
 
-    fn update(&mut self, update_data: std::sync::Arc<dyn super::ModuleData>) {
+    fn update(&mut self, update_data: std::sync::Arc<dyn ModuleData>) {
         let cores = update_data
             .downcast_ref::<CoresStat>()
             .expect("A bug in the routing logic");
@@ -81,8 +73,10 @@ impl Module for Cpu {
         self.current_core_stats = cores.clone();
     }
 
-    fn subscription(&self) -> Option<iced::Subscription<super::ModuleUpdate>> {
-        Some(Subscription::run(worker))
+    fn subscription(&self) -> Option<iced::Subscription<ModuleUpdate>> {
+        Some(Subscription::run_with(self.id[0], |destination| {
+            worker(*destination)
+        }))
     }
 
     fn new_or_default(table: &toml::Table) -> Rc<dyn Module>
@@ -105,11 +99,19 @@ impl Module for Cpu {
             critical_foreground,
         };
 
+        let id = [module_id_unique()];
+
         Rc::new(Self {
             config,
             style,
-            ..Default::default()
+            current_core_stats: CoresStat(vec![]),
+            last_core_stats: CoresStat(vec![]),
+            id,
         })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 
@@ -229,17 +231,15 @@ fn measure() -> CoresStat {
     CoresStat(core_stats)
 }
 
-fn worker() -> impl Stream<Item = ModuleUpdate> {
-    const MODULE_ID: TypeId = TypeId::of::<Cpu>();
-
-    stream::channel(0, async |mut output| {
+fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+    stream::channel(0, async move |mut output| {
         let poll_interval = get_poll_interval("cpu");
 
-        send_data(&mut output, MODULE_ID, measure()).await;
+        send_data(&mut output, module_id, measure()).await;
 
         loop {
             sleep(poll_interval);
-            send_data(&mut output, MODULE_ID, measure()).await;
+            send_data(&mut output, module_id, measure()).await;
         }
     })
 }

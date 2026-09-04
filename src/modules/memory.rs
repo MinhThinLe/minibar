@@ -10,6 +10,8 @@ use iced::widget::{container, text};
 
 use minibar_derives::{ModuleData, NamedModule};
 
+use crate::modules::module_id::module_id_unique;
+
 use super::*;
 
 const DEFAULT_FORMAT: &str = "RAM: {usage}";
@@ -45,6 +47,7 @@ pub struct Memory {
     status: MemoryStatus,
     config: MemoryConfig,
     style: CommonStyle,
+    id: [ModuleId; 1],
 }
 
 impl Module for Memory {
@@ -69,7 +72,9 @@ impl Module for Memory {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run(worker))
+        Some(Subscription::run_with(self.id[0], |destination| {
+            worker(*destination)
+        }))
     }
 
     fn new_or_default(table: &Table) -> Rc<dyn Module>
@@ -92,11 +97,18 @@ impl Module for Memory {
 
         let status = MemoryStatus::default();
 
+        let id = [module_id_unique()];
+
         Rc::new(Self {
             status,
             config,
             style,
+            id,
         })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 
@@ -238,17 +250,15 @@ fn measure() -> MemoryStatus {
     MemoryStatus::from_str(&mem_details).unwrap_or_default()
 }
 
-fn worker() -> impl Stream<Item = ModuleUpdate> {
-    const MODULE_ID: TypeId = TypeId::of::<Memory>();
-
-    stream::channel(0, async |mut output| {
+fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+    stream::channel(0, async move |mut output| {
         let poll_interval = get_poll_interval("memory");
 
-        send_data(&mut output, MODULE_ID, measure()).await;
+        send_data(&mut output, module_id, measure()).await;
 
         loop {
             sleep(poll_interval);
-            send_data(&mut output, MODULE_ID, measure()).await;
+            send_data(&mut output, module_id, measure()).await;
         }
     })
 }

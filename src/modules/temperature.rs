@@ -10,6 +10,8 @@ use iced::{
 use log::error;
 use minibar_derives::{ModuleData, NamedModule};
 
+use crate::modules::module_id::module_id_unique;
+
 use super::*;
 
 const DEFAULT_FORMAT: &str = "TEMP: {temp_c}°C";
@@ -29,6 +31,7 @@ pub struct Temperature {
     config: TemperatureConfig,
     style: CommonStyle,
     current_temp: TemperatureReading,
+    id: [ModuleId; 1], // Looks kinda stupid but this should avoid an allocation
 }
 
 impl Module for Temperature {
@@ -53,7 +56,9 @@ impl Module for Temperature {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run(worker))
+        Some(Subscription::run_with(self.id[0], |destination| {
+            worker(*destination)
+        }))
     }
 
     fn new_or_default(table: &Table) -> Rc<dyn Module>
@@ -74,11 +79,18 @@ impl Module for Temperature {
             critical_foreground,
         };
 
+        let id = [module_id_unique()];
+
         Rc::new(Self {
             config,
             style,
             current_temp: TemperatureReading(0.0),
+            id,
         })
+    }
+
+    fn id(&self) -> &[ModuleId] {
+        &self.id
     }
 }
 
@@ -116,20 +128,18 @@ impl TemperatureReading {
     }
 }
 
-fn worker() -> impl Stream<Item = ModuleUpdate> {
-    const TYPE_ID: TypeId = TypeId::of::<Temperature>();
-
-    stream::channel(0, async |mut output| {
+fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+    stream::channel(0, async move |mut output| {
         let poll_interval = get_poll_interval("temperature");
         let reading = TemperatureReading(read_temp());
 
-        send_data(&mut output, TYPE_ID, reading).await;
+        send_data(&mut output, module_id, reading).await;
 
         loop {
             sleep(poll_interval);
             let reading = TemperatureReading(read_temp());
 
-            send_data(&mut output, TYPE_ID, reading).await;
+            send_data(&mut output, module_id, reading).await;
         }
     })
 }

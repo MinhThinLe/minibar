@@ -14,7 +14,8 @@ center_modules = [
 right_modules = [
     "pipewire",
     "memory",
-    "temperature"
+    "temperature",
+    "custom-module",
 ]
 
 background = 0xffffff00
