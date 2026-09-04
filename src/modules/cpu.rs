@@ -235,11 +235,9 @@ fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async move |mut output| {
         let poll_interval = get_poll_interval("cpu");
 
-        send_data(&mut output, module_id, measure()).await;
-
         loop {
-            sleep(poll_interval);
             send_data(&mut output, module_id, measure()).await;
+            sleep(poll_interval);
         }
     })
 }
