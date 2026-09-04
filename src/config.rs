@@ -47,7 +47,7 @@ impl From<&Table> for Bar {
 
         let get_module_list = |key| -> Option<Array> {
             let modules = bar_config.get(key)?;
-            Some(modules.as_array()?.to_vec())
+            Some(modules.as_array()?.clone())
         };
 
         let left_modules_name = get_module_list("left_modules").unwrap_or_default();
@@ -99,7 +99,7 @@ fn get_modules(config_table: &Table, module_name_list: &Array) -> Vec<Rc<dyn Mod
 fn has_valid_config(is_group: bool, is_script: bool) -> bool {
     let check = [is_group, is_script]
         .iter()
-        .map(|bool| *bool as u8)
+        .map(|bool| u8::from(*bool))
         .sum::<u8>();
     if check == 0 {
         error!("Undefined custom module type, should be either group or script");
@@ -130,7 +130,7 @@ fn get_custom_module(config_table: &Table, module_name: &str) -> Option<Rc<dyn M
         .map_or(false, |module_list| module_list.as_array().is_some());
     let is_script = module_config
         .get("command")
-        .map_or(false, |command| command.as_str().is_some());
+        .is_some_and(|command| command.as_str().is_some());
 
     if !has_valid_config(is_group, is_script) {
         return None;
