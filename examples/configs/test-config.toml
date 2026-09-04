@@ -54,4 +54,4 @@ icons = ""
 icon_muted = ""
 
 [custom-module]
-command = "heyheyhey"
+command = "date"
