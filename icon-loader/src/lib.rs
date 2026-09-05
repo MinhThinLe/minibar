@@ -1,7 +1,6 @@
 mod base_dirs;
 mod theme;
 
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
@@ -12,7 +11,6 @@ use crate::theme::{Theme, ThemeName, get_current_theme_name};
 #[derive(Debug, Clone, Default)]
 pub struct IconLoader {
     themes: Vec<Theme>,
-    cache: HashMap<String, PathBuf>,
 }
 
 #[derive(Clone)]
@@ -94,7 +92,6 @@ impl IconLoader {
 
         Ok(Self {
             themes,
-            cache: HashMap::new(),
         })
     }
 
@@ -120,21 +117,6 @@ impl IconLoader {
             search_queue.remove(0);
         }
 
-        None
-    }
-
-    pub fn query_cached(&mut self, icon_name: &str, icon_size: IconSize) -> Option<PathBuf> {
-        let key = format!("{icon_name}-{icon_size:?}"); // This is insanely hacky
-        // TODO: Change the cache implementation to
-        // a BTree later on
-        if self.cache.contains_key(&key) {
-            return self.cache.get(&key).cloned();
-        }
-
-        if let Some(icon) = self.query_uncached(icon_name, icon_size) {
-            self.cache.insert(key, icon.clone());
-            return Some(icon);
-        }
         None
     }
 
