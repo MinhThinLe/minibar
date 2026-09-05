@@ -156,7 +156,7 @@ fn read_temp() -> f32 {
     const THERMAL_ZONE_DIR: &str = "/sys/class/thermal/thermal_zone";
 
     const TYPE_DIR: &str = "type";
-    const DESIRED_SENSOR_TYPE: &str = "SEN";
+    const DESIRED_SENSOR_TYPES: [&str; 2] = ["TCPU", "x86_pkg_temp"];
     const TEMPERATURE: &str = "temp";
 
     const MILICELCIUS: f32 = 0.001;
@@ -174,10 +174,13 @@ fn read_temp() -> f32 {
     let mut average_temp: f32 = 0.0;
     let mut entries = 0;
     for dir in &thermal_dirs {
-        let Ok(thermal_type) = fs::read_to_string(dir.join(TYPE_DIR)) else {
+        let Ok(sensor_type) = fs::read_to_string(dir.join(TYPE_DIR)) else {
             continue;
         };
-        if !thermal_type.starts_with(DESIRED_SENSOR_TYPE) {
+        if !DESIRED_SENSOR_TYPES
+            .iter()
+            .any(|desired_sensor_type| sensor_type.starts_with(desired_sensor_type))
+        {
             continue;
         }
         let Some(temp) = value_from_file::<f32>(dir.join(TEMPERATURE)) else {
