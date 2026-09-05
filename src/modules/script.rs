@@ -125,18 +125,29 @@ fn worker(
 }
 
 fn unwrap_output(command_output: std::io::Result<std::process::Output>) -> Option<String> {
-    match command_output {
+    let result = match command_output {
         Ok(result) => {
-            if !result.status.success() {
-                error!("{}", String::from_utf8_lossy(&result.stderr).trim());
-                return None;
-            }
-            String::from_utf8(result.stdout)
-                .map(|res| res.trim().to_string())
-                .ok()
+            result
         }
         Err(err) => {
             error!("{err}");
+            return None;
+        }
+    };
+
+    if !result.status.success() {
+        error!("{}", String::from_utf8_lossy(&result.stderr).trim());
+        return None;
+    }
+
+    match String::from_utf8(result.stdout) {
+        Ok(mut res) => {
+            // Premature optimisation moment
+            res.truncate(res.trim_end().len());
+            Some(res)
+        },
+        Err(utf8_err) => {
+            error!("{utf8_err}");
             None
         }
     }
