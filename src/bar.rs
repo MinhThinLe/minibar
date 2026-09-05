@@ -14,14 +14,19 @@ use smithay_client_toolkit::reexports::client::protocol::wl_output::WlOutput;
 use smithay_client_toolkit::shell::wlr_layer::{Anchor, Layer};
 
 use crate::modules::{Module, ModuleUpdate};
-use crate::{BAR_PARAMETER, CONFIG};
+use crate::CONFIG;
+
+pub struct BarConfig {
+    theme: Theme,
+    size: u32,
+}
 
 pub struct Bar {
     pub(crate) left_modules: Vec<Box<dyn Module>>,
     pub(crate) center_modules: Vec<Box<dyn Module>>,
     pub(crate) right_modules: Vec<Box<dyn Module>>,
-    pub(crate) theme: Theme,
     pub(crate) outputs: Vec<Output>,
+    pub(crate) config: BarConfig,
 }
 
 #[derive(Clone)]
@@ -53,7 +58,7 @@ impl Bar {
                 Task::none()
             }
             BarEvent::OutputUpdate(event, output) => self.handle_output_event(event, output),
-            BarEvent::OutputReady(output, id) => create_client(output, id),
+            BarEvent::OutputReady(output, id) => self.create_client(output, id),
         }
     }
 
@@ -101,7 +106,7 @@ impl Bar {
     }
 
     pub fn theme(&self, _window_id: Id) -> Theme {
-        self.theme.clone()
+        self.config.theme.clone()
     }
 
     fn all_modules(&self) -> impl Iterator<Item = &dyn Module> {
@@ -158,18 +163,24 @@ impl Bar {
         }
         Task::none()
     }
+
+    fn create_client(&self, wl_display: WlOutput, id: Id) -> Task<BarEvent> {
+        get_layer_surface(SctkLayerSurfaceSettings {
+            id,
+            size: Some((Some(self.config.size), Some(self.config.size))),
+            anchor: Anchor::LEFT | Anchor::TOP | Anchor::RIGHT,
+            exclusive_zone: self.config.size.cast_signed(),
+            layer: Layer::Top,
+            output: IcedOutput::Output(wl_display),
+            ..Default::default()
+        })
+    }
 }
 
-fn create_client(wl_display: WlOutput, id: Id) -> Task<BarEvent> {
-    get_layer_surface(SctkLayerSurfaceSettings {
-        id,
-        size: Some((Some(BAR_PARAMETER.bar_size), Some(BAR_PARAMETER.bar_size))),
-        anchor: Anchor::LEFT | Anchor::TOP | Anchor::RIGHT,
-        exclusive_zone: BAR_PARAMETER.bar_size.cast_signed(),
-        layer: Layer::Top,
-        output: IcedOutput::Output(wl_display),
-        ..Default::default()
-    })
+impl BarConfig {
+    pub fn new(theme: Theme, size: u32) -> Self {
+        Self { theme, size }
+    }
 }
 
 fn compositor_events() -> Subscription<BarEvent> {
@@ -187,12 +198,17 @@ fn compositor_events() -> Subscription<BarEvent> {
 
 impl Default for Bar {
     fn default() -> Self {
+        let config = BarConfig {
+            theme: Theme::Dark,
+            size: 32,
+        };
+
         Bar {
             left_modules: Vec::new(),
             center_modules: Vec::new(),
             right_modules: Vec::new(),
-            theme: Theme::Dark,
             outputs: Vec::new(),
+            config,
         }
     }
 }

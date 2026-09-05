@@ -18,18 +18,12 @@ use bar::Bar;
 
 use crate::logger::Logger;
 
-struct BarParameter {
-    font_name: &'static str,
-    bar_size: u32,
-}
-
-const DEFAULT_BAR_SIZE: u32 = 32;
+struct FontName(&'static str);
 const DEFAULT_FONT_NAME: &str = "monospace";
 
 // Cramming the configuration table inside a lazy lock makes config hot reloading impossible but it
-// allows me to side step a few problems such as not being able to adjust the default font and bar's
-// height at runtime. The latter could be solved by parsing the config file before the bar launches
-// but that will require parsing the same config file twice.
+// allows me to side step a few problems such as not being able to adjust the default font at
+// runtime.
 pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     let config_file = get_config_location();
     info!("Using config from {}", config_file.display());
@@ -47,9 +41,9 @@ pub static CONFIG: LazyLock<Table> = LazyLock::new(|| {
     }
 });
 
-static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
+static FONT_NAME: LazyLock<FontName> = LazyLock::new(|| {
     let Some(bar_config) = CONFIG.get("bar") else {
-        return BarParameter::default();
+        return FontName(DEFAULT_FONT_NAME);
     };
 
     let font_name = || -> Option<&str> {
@@ -58,27 +52,8 @@ static BAR_PARAMETER: LazyLock<BarParameter> = LazyLock::new(|| {
     }()
     .unwrap_or(DEFAULT_FONT_NAME);
 
-    let bar_size = || -> Option<u32> {
-        let value = bar_config.get("size")?;
-        let int = value.as_integer()?;
-        u32::try_from(int).ok()
-    }()
-    .unwrap_or(DEFAULT_BAR_SIZE);
-
-    BarParameter {
-        font_name,
-        bar_size,
-    }
+    FontName(font_name)
 });
-
-impl Default for BarParameter {
-    fn default() -> Self {
-        Self {
-            font_name: DEFAULT_FONT_NAME,
-            bar_size: DEFAULT_BAR_SIZE,
-        }
-    }
-}
 
 fn main() -> iced::Result {
     let _ = log::set_logger(&Logger).map(|()| log::set_max_level(log::LevelFilter::Info));
@@ -92,7 +67,7 @@ fn main() -> iced::Result {
     daemon(Bar::start, Bar::update, Bar::view)
         .settings(settings)
         .subscription(Bar::subscription)
-        .default_font(Font::with_name(BAR_PARAMETER.font_name))
+        .default_font(Font::with_name(FONT_NAME.0))
         .theme(Bar::theme)
         .run()
 }

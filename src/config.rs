@@ -5,7 +5,7 @@ use iced::Theme;
 use log::{error, warn};
 use toml::{Table, Value, value::Array};
 
-use crate::bar::Bar;
+use crate::bar::{Bar, BarConfig};
 use crate::modules::{NamedModule, reexports::*};
 
 type ModuleFactoryFunction = fn(&Table) -> Box<dyn Module>;
@@ -17,6 +17,8 @@ fn register_module<T: Module + NamedModule>() -> (ModuleInternalName, ModuleFact
 
     (name, factory_function)
 }
+
+const DEFAULT_BAR_SIZE: u32 = 32;
 
 static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunction>> =
     LazyLock::new(|| {
@@ -59,12 +61,20 @@ impl From<&Table> for Bar {
         let right_modules = get_modules(value, &right_modules_name);
 
         let theme = get_theme(bar_config);
+        let bar_size = || -> Option<u32> {
+            let value = bar_config.get("size")?;
+            let int = value.as_integer()?;
+            u32::try_from(int).ok()
+        }()
+        .unwrap_or(DEFAULT_BAR_SIZE);
+
+        let config = BarConfig::new(theme, bar_size);
 
         Self {
             left_modules,
             center_modules,
             right_modules,
-            theme,
+            config,
             outputs: Vec::new(),
         }
     }
