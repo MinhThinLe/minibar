@@ -12,11 +12,11 @@ Currently, there's support for the following modules
 - Systray
 - Temperature
 - Workspaces (Only supports Niri atm)
+- Audio (Only supports pipewire atm)
+- Group
 
 Support for the following modules is planned
 - Bluetooth
-- Group
-- Audio (pipewire and maybe ALSA too)
 - Backlight
 - Idle inhibitor
 
@@ -33,7 +33,7 @@ I wanted a status bar that has all the following features
 
 I have checked out the following projects
 
-[**Waybar**](https://github.com/Alexays/Waybar)\
+### [Waybar](https://github.com/Alexays/Waybar)
 Pros:
 - Is nothing more than a bar
 - OK-ish resource consumption (roughly 100MB of RAM)
@@ -41,7 +41,7 @@ Pros:
 Cons:
 - It sometimes crashes on monitor hot-plug. Not often enough to be easily debug-able, just enough to be annoying
 
-[**Noctalia**](https://github.com/noctalia-dev/noctalia)\
+### [**Noctalia**](https://github.com/noctalia-dev/noctalia)
 Pros:
 - Hot-plugging monitors never crashes the shell
 - Just as light as the services it's meant to replace (Waybar + Swayidle + Hyprlock + SwayOSD + Mako + Rofi, etc)
@@ -49,14 +49,14 @@ Pros:
 Cons:
 - Does too much
 
-[**Ironbar**](https://github.com/JakeStanger/ironbar)\
+### [Ironbar](https://github.com/JakeStanger/ironbar)
 Pros:
 - Good customizability
 
 Cons:
 - Just as heavy as Waybar since it's written with GTK, might as well use Waybar at that point
 
-[**Dwl's bar**](https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/bar)\
+### [Dwl's bar](https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/bar)
 Pros:
 - Is just a bar, nothing more, nothing less
 - *Tiny* footprint (~1 or 2 MB of RAM, can't be sure since it's a dwl patch rather than a separate program)
@@ -64,7 +64,7 @@ Pros:
 Cons:
 - Is tied to dwl
 
-[**Swaybar**](https://github.com/swaywm/sway/tree/master/swaybar)\
+### [Swaybar](https://github.com/swaywm/sway/tree/master/swaybar)
 Pros:
 - Small footprint (17MB of RAM)
 - Also have other things I need (like a systray)
@@ -72,7 +72,7 @@ Pros:
 Cons:
 - Is tied to Sway
 
-[**Bar-rs**](https://github.com/faervan/bar-rs/tree/main)\
+### [Bar-rs](https://github.com/faervan/bar-rs/tree/main)
 Pros:
 - Light resource consumption (about 50MB of RAM)
 
