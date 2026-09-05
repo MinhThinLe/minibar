@@ -57,6 +57,7 @@ impl Module for PipeWire {
 
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
         container(text(self.get_text()))
+            .padding(self.style.padding)
             .style(|_theme| container::Style {
                 text_color: self.style.foreground,
                 background: self.get_background(),
