@@ -13,8 +13,8 @@ use smithay_client_toolkit::output::OutputInfo;
 use smithay_client_toolkit::reexports::client::protocol::wl_output::WlOutput;
 use smithay_client_toolkit::shell::wlr_layer::{Anchor, Layer};
 
-use crate::modules::{Module, ModuleUpdate};
 use crate::CONFIG;
+use crate::modules::{Module, ModuleUpdate};
 
 pub struct BarConfig {
     theme: Theme,
