@@ -29,6 +29,7 @@ struct BatteryStatus {
 
 struct BatteryConfig {
     format: Box<str>,
+    icons: Vec<char>,
     critical_threshold: u8,
     critical_foreground: Option<Color>,
 }
@@ -56,8 +57,18 @@ impl FromStr for BatteryState {
 impl Battery {
     fn get_text(&self) -> String {
         const PERCENTAGE: &str = "{percentage}";
+        const ICON: &str = "{icon}";
+        const MAXIMUM_BATTERY_PERCENTAGE: u16 = 100;
+
+        let icon = get_icon(
+            &self.config.icons,
+            self.status.percentage as u16,
+            MAXIMUM_BATTERY_PERCENTAGE,
+        );
+
         self.config
             .format
+            .replace(ICON, &icon.to_string())
             .replace(PERCENTAGE, &self.status.percentage.to_string())
     }
 
@@ -110,8 +121,11 @@ impl Module for Battery {
         let critical_foreground = get_color(table, "ciritical_foreground");
         let style = CommonStyle::from(table);
 
+        let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
+
         let config = BatteryConfig {
             format: format.into(),
+            icons,
             critical_threshold,
             critical_foreground,
         };

@@ -139,6 +139,30 @@ fn parse_border(value: &Value) -> Border {
     }
 }
 
+fn to_icon_list(icons_str: &str) -> Vec<char> {
+    icons_str
+        .chars()
+        .filter(|char| !char.is_whitespace())
+        .collect()
+}
+
+fn get_icon(icon_list: &[char], value: u16, max: u16) -> char {
+    if icon_list.is_empty() {
+        return char::default();
+    }
+
+    let levels = icon_list.len() as u16;
+    let step_size = max / levels;
+
+    for level in 1..levels {
+        if value < level * step_size {
+            return icon_list[level as usize - 1];
+        }
+    }
+
+    icon_list[icon_list.len() - 1]
+}
+
 fn rgba8_to_color(raw: u32) -> Color {
     let bytes = raw.to_be_bytes();
     let red = bytes[0];

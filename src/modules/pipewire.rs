@@ -117,40 +117,19 @@ impl PipeWire {
     }
 
     fn format(&self, format_str: &str) -> String {
+        const ASSUMED_MAX_VOLUME: u16 = 100;
         format_str
-            .replace("{icon}", &self.get_icon().to_string())
+            .replace(
+                "{icon}",
+                &get_icon(&self.config.icons, self.volume.level, ASSUMED_MAX_VOLUME).to_string(),
+            )
             .replace("{icon_muted}", &self.config.icon_muted)
             .replace("{volume}", &self.volume.level.to_string())
-    }
-
-    fn get_icon(&self) -> char {
-        const ASSUMED_MAX_VOLUME: u16 = 100;
-        if self.config.icons.is_empty() {
-            return char::default();
-        }
-
-        let levels = self.config.icons.len() as u16;
-        let step = ASSUMED_MAX_VOLUME / levels;
-
-        for level in 1..levels {
-            if self.volume.level < level * step {
-                return self.config.icons[level as usize - 1];
-            }
-        }
-
-        self.config.icons.last().copied().unwrap_or_default()
     }
 
     fn get_background(&self) -> Option<Background> {
         Some(Background::Color(self.style.background?))
     }
-}
-
-fn to_icon_list(icons_str: &str) -> Vec<char> {
-    icons_str
-        .chars()
-        .filter(|char| !char.is_whitespace())
-        .collect()
 }
 
 fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
