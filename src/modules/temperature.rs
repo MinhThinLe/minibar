@@ -22,6 +22,7 @@ struct TemperatureReading(f32);
 
 struct TemperatureConfig {
     format: Box<str>,
+    icons: Vec<char>,
     critical_threshold: f32,
     critical_foreground: Option<Color>,
 }
@@ -74,7 +75,10 @@ impl Module for Temperature {
 
         let style = CommonStyle::from(table);
 
+        let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
+
         let config = TemperatureConfig {
+            icons,
             format,
             critical_threshold,
             critical_foreground,
@@ -100,8 +104,14 @@ impl Temperature {
         const TEMP_C: &str = "{temp_c}";
         const TEMP_F: &str = "{temp_f}";
         const TEMP_K: &str = "{temp_k}";
+        const ICON: &str = "{icon}";
+        const MAX_TEMP: u16 = 105;
+
+        let icon = get_icon(&self.config.icons, self.current_temp.0 as u16, MAX_TEMP);
+
         self.config
             .format
+            .replace(ICON, &icon.to_string())
             .replace(TEMP_C, &float_to_string(self.current_temp.0))
             .replace(TEMP_F, &float_to_string(self.current_temp.to_fahrenheit()))
             .replace(TEMP_K, &float_to_string(self.current_temp.to_kelvin()))
