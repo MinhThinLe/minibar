@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use iced::Alignment::Center;
 use iced::Length::Fill;
 use iced::event::wayland::{self, OutputEvent};
@@ -19,9 +17,9 @@ use crate::modules::{Module, ModuleUpdate};
 use crate::{BAR_PARAMETER, CONFIG};
 
 pub struct Bar {
-    pub(crate) left_modules: Vec<Rc<dyn Module>>,
-    pub(crate) center_modules: Vec<Rc<dyn Module>>,
-    pub(crate) right_modules: Vec<Rc<dyn Module>>,
+    pub(crate) left_modules: Vec<Box<dyn Module>>,
+    pub(crate) center_modules: Vec<Box<dyn Module>>,
+    pub(crate) right_modules: Vec<Box<dyn Module>>,
     pub(crate) theme: Theme,
     pub(crate) outputs: Vec<Output>,
 }
@@ -51,7 +49,7 @@ impl Bar {
                 let target_id = module_update.0;
                 self.all_modules_mut()
                     .filter(|module| module.id().contains(&target_id))
-                    .for_each(|module| module.update(module_update.1.clone()));
+                    .for_each(|module| module.update(module_update.clone()));
                 Task::none()
             }
             BarEvent::OutputUpdate(event, output) => self.handle_output_event(event, output),
@@ -111,7 +109,7 @@ impl Bar {
             .iter()
             .chain(self.center_modules.iter())
             .chain(self.right_modules.iter())
-            .map(|rc| &**rc)
+            .map(Box::as_ref)
     }
 
     fn all_modules_mut(&mut self) -> impl Iterator<Item = &mut dyn Module> {
@@ -119,7 +117,7 @@ impl Bar {
             .iter_mut()
             .chain(self.center_modules.iter_mut())
             .chain(self.right_modules.iter_mut())
-            .map(|rc| Rc::<dyn Module + 'static>::get_mut(rc).unwrap())
+            .map(Box::as_mut)
     }
 
     fn handle_output_event(

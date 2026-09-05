@@ -36,13 +36,13 @@ impl Module for Clock {
             .into()
     }
 
-    fn update(&mut self, _update_data: Arc<dyn ModuleData>) {}
+    fn update(&mut self, _module_update: ModuleUpdate) {}
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
         None
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -53,7 +53,7 @@ impl Module for Clock {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self { config, style, id })
+        Box::new(Self { config, style, id })
     }
 
     fn id(&self) -> &[ModuleId] {

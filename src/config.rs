@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 use std::sync::LazyLock;
-use std::{collections::HashMap, rc::Rc};
 
 use iced::Theme;
 use log::{error, warn};
@@ -8,7 +8,7 @@ use toml::{Table, Value, value::Array};
 use crate::bar::Bar;
 use crate::modules::{NamedModule, reexports::*};
 
-type ModuleFactoryFunction = fn(&Table) -> Rc<dyn Module>;
+type ModuleFactoryFunction = fn(&Table) -> Box<dyn Module>;
 type ModuleInternalName = &'static str;
 
 fn register_module<T: Module + NamedModule>() -> (ModuleInternalName, ModuleFactoryFunction) {
@@ -29,7 +29,6 @@ static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunc
             register_module::<Temperature>(),
             register_module::<SysTray>(),
             // TODO: Implement bluetooth module
-            // TODO: Implement group module
             register_module::<PipeWire>(),
             // TODO: Implement backlight module
             // TODO: Implement idle inhibitor module
@@ -71,7 +70,7 @@ impl From<&Table> for Bar {
     }
 }
 
-fn get_modules(config_table: &Table, module_name_list: &Array) -> Vec<Rc<dyn Module>> {
+pub(crate) fn get_modules(config_table: &Table, module_name_list: &Array) -> Vec<Box<dyn Module>> {
     let mut modules = Vec::new();
     for module in module_name_list {
         let Some(module_name) = module.as_str() else {
@@ -113,7 +112,7 @@ fn has_valid_config(is_group: bool, is_script: bool) -> bool {
     true
 }
 
-fn get_custom_module(config_table: &Table, module_name: &str) -> Option<Rc<dyn Module>> {
+fn get_custom_module(config_table: &Table, module_name: &str) -> Option<Box<dyn Module>> {
     let Some(module_config) = config_table.get(module_name) else {
         error!(
             "{module_name} is used but no definition for it was found, define it by adding a table named {module_name} to your configuration."
@@ -127,7 +126,7 @@ fn get_custom_module(config_table: &Table, module_name: &str) -> Option<Rc<dyn M
 
     let is_group = module_config
         .get("group")
-        .map_or(false, |module_list| module_list.as_array().is_some());
+        .is_some_and(|module_list| module_list.as_array().is_some());
     let is_script = module_config
         .get("command")
         .is_some_and(|command| command.as_str().is_some());
@@ -141,8 +140,7 @@ fn get_custom_module(config_table: &Table, module_name: &str) -> Option<Rc<dyn M
     }
 
     if is_group {
-        error!("Group module isn't implemented yet");
-        return None;
+        return Some(Box::new(Group::new(module_config, config_table)));
     }
 
     None
@@ -158,7 +156,6 @@ fn get_theme(table: &Value) -> Theme {
 }
 
 fn get_builtin_theme(theme_name: &str) -> Option<Theme> {
-    println!("{theme_name}");
     Some(match theme_name {
         "light" => Theme::Light,
         "dark" => Theme::Dark,

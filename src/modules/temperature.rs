@@ -47,7 +47,8 @@ impl Module for Temperature {
             .into()
     }
 
-    fn update(&mut self, update_data: Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let new_data = update_data
             .downcast_ref::<TemperatureReading>()
             .expect("This update shouldn't be here");
@@ -61,7 +62,7 @@ impl Module for Temperature {
         }))
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -81,7 +82,7 @@ impl Module for Temperature {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self {
+        Box::new(Self {
             config,
             style,
             current_temp: TemperatureReading(0.0),

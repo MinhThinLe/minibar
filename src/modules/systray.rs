@@ -1,6 +1,5 @@
 use std::ffi::OsStr;
-use std::rc::Rc;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{LazyLock, Mutex};
 use std::thread::sleep;
 
 use dbus::blocking::{Connection, Proxy};
@@ -83,7 +82,8 @@ impl Module for SysTray {
             .into()
     }
 
-    fn update(&mut self, update_data: Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let tray_update = update_data
             .downcast_ref::<TrayEvent>()
             .expect("Who invited bro?");
@@ -109,7 +109,7 @@ impl Module for SysTray {
         }))
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -140,7 +140,7 @@ impl Module for SysTray {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self {
+        Box::new(Self {
             dbus_connection: Mutex::new(connection),
             tray_items,
             style,

@@ -34,7 +34,8 @@ impl Module for Script {
         &self.id
     }
 
-    fn update(&mut self, update_data: Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let command_ouput = update_data
             .downcast_ref::<CommandOutput>()
             .expect("Who sent me this?");
@@ -67,7 +68,7 @@ impl Module for Script {
         ))
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -87,7 +88,7 @@ impl Module for Script {
 
         let style = CommonStyle::from(table);
 
-        Rc::new(Self {
+        Box::new(Self {
             id,
             config,
             style,
@@ -126,9 +127,7 @@ fn worker(
 
 fn unwrap_output(command_output: std::io::Result<std::process::Output>) -> Option<String> {
     let result = match command_output {
-        Ok(result) => {
-            result
-        }
+        Ok(result) => result,
         Err(err) => {
             error!("{err}");
             return None;
@@ -145,7 +144,7 @@ fn unwrap_output(command_output: std::io::Result<std::process::Output>) -> Optio
             // Premature optimisation moment
             res.truncate(res.trim_end().len());
             Some(res)
-        },
+        }
         Err(utf8_err) => {
             error!("{utf8_err}");
             None

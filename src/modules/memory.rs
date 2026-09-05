@@ -63,7 +63,8 @@ impl Module for Memory {
             .into()
     }
 
-    fn update(&mut self, update_data: Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let mem_info = update_data
             .downcast_ref::<MemoryStatus>()
             .expect("This shouldn't end up here");
@@ -77,7 +78,7 @@ impl Module for Memory {
         }))
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -99,7 +100,7 @@ impl Module for Memory {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self {
+        Box::new(Self {
             status,
             config,
             style,

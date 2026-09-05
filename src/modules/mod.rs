@@ -1,6 +1,7 @@
 mod battery;
 mod clock;
 mod cpu;
+mod group;
 mod memory;
 mod pipewire;
 mod script;
@@ -10,7 +11,6 @@ mod workspaces;
 
 use std::fmt::Debug;
 use std::path::Path;
-use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -32,6 +32,7 @@ pub mod reexports {
     pub use super::battery::Battery;
     pub use super::clock::Clock;
     pub use super::cpu::Cpu;
+    pub use super::group::Group;
     pub use super::memory::Memory;
     pub use super::pipewire::PipeWire;
     pub use super::script::Script;
@@ -75,11 +76,11 @@ pub trait ModuleData: DowncastSync {}
 impl_downcast!(sync ModuleData);
 
 pub trait Module: DowncastSync {
-    fn update(&mut self, update_data: Arc<dyn ModuleData>);
+    fn update(&mut self, module_update: ModuleUpdate);
     fn view(&self, output: &Output) -> Element<'_, BarEvent>;
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>>;
     fn id(&self) -> &[ModuleId];
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized;
 }

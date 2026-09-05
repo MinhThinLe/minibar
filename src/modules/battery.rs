@@ -1,6 +1,4 @@
-use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::thread::sleep;
 
 use iced::futures::Stream;
@@ -89,7 +87,8 @@ impl Module for Battery {
             .into()
     }
 
-    fn update(&mut self, update_data: Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let update = update_data
             .downcast_ref::<BatteryStatus>()
             .expect("A bug in the routing logic");
@@ -102,7 +101,7 @@ impl Module for Battery {
         }))
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -119,7 +118,7 @@ impl Module for Battery {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self {
+        Box::new(Self {
             config,
             style,
             status: BatteryStatus::default(),

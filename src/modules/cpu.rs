@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::rc::Rc;
 use std::str::FromStr;
 use std::thread::sleep;
 
@@ -64,7 +63,8 @@ impl Module for Cpu {
             .into()
     }
 
-    fn update(&mut self, update_data: std::sync::Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let cores = update_data
             .downcast_ref::<CoresStat>()
             .expect("A bug in the routing logic");
@@ -79,7 +79,7 @@ impl Module for Cpu {
         }))
     }
 
-    fn new_or_default(table: &toml::Table) -> Rc<dyn Module>
+    fn new_or_default(table: &toml::Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -101,7 +101,7 @@ impl Module for Cpu {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self {
+        Box::new(Self {
             config,
             style,
             current_core_stats: CoresStat(vec![]),

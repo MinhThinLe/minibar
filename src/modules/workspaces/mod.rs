@@ -1,8 +1,5 @@
 mod niri;
 
-use std::rc::Rc;
-use std::sync::Arc;
-
 use iced::futures::Stream;
 use iced::stream;
 use iced::widget::{Text, button, row, text};
@@ -81,7 +78,8 @@ impl Module for Workspaces {
             .into()
     }
 
-    fn update(&mut self, update_data: Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let event = update_data
             .downcast_ref::<CompositorEvent>()
             .expect("Why is this event routed here?");
@@ -102,7 +100,7 @@ impl Module for Workspaces {
         }))
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -120,7 +118,7 @@ impl Module for Workspaces {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self {
+        Box::new(Self {
             workspaces: Vec::new(),
             config,
             style,

@@ -1,8 +1,8 @@
 use std::io::{BufRead, BufReader};
+use std::process::Command;
 use std::process::Stdio;
-use std::sync::{Arc, mpsc};
+use std::sync::mpsc;
 use std::time::Duration;
-use std::{process::Command, rc::Rc};
 
 use iced::Background;
 use iced::widget::{container, text};
@@ -45,7 +45,8 @@ pub struct PipeWire {
 }
 
 impl Module for PipeWire {
-    fn update(&mut self, update_data: Arc<dyn ModuleData>) {
+    fn update(&mut self, module_update: ModuleUpdate) {
+        let ModuleUpdate(_module_id, update_data) = module_update;
         let update = update_data
             .downcast_ref::<PipeWireUpdate>()
             .expect("Bro thought he was on the team");
@@ -71,7 +72,7 @@ impl Module for PipeWire {
         }))
     }
 
-    fn new_or_default(table: &Table) -> Rc<dyn Module>
+    fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
@@ -93,7 +94,7 @@ impl Module for PipeWire {
 
         let id = [module_id_unique()];
 
-        Rc::new(Self {
+        Box::new(Self {
             volume: get_new_volume(),
             config,
             style,
