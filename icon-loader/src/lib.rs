@@ -64,6 +64,12 @@ impl Error for IconLoaderError {
 }
 
 impl IconLoader {
+    /// Creates a new `IconLoader`, its icon location and current theme are inferred based on the
+    /// freedesktop icon theme specification
+    ///
+    /// # Errors
+    /// This factory function will return an error if it can't infer the current theme or the
+    /// inferred theme is considered to be invalid based on the freedesktop icon theme specification
     pub fn new() -> Result<Self, IconLoaderError> {
         let base_directories = get_base_directories();
         let current_theme = get_current_theme_name();
@@ -90,9 +96,7 @@ impl IconLoader {
             index += 1;
         }
 
-        Ok(Self {
-            themes,
-        })
+        Ok(Self { themes })
     }
 
     #[must_use]
