@@ -12,10 +12,7 @@ center_modules = [
 ]
 
 right_modules = [
-    "pipewire",
-    "memory",
-    "temperature",
-    "custom-module",
+    "sys-mon"
 ]
 
 background = 0xffffff00
@@ -52,6 +49,20 @@ format = "{icon} {volume}%"
 format_muted = "{icon_muted} muted"
 icons = ""
 icon_muted = ""
+
+[sys-mon]
+group = [
+    "pipewire",
+    "memory",
+    "temperature",
+    "custom-module",
+]
+border = {
+    radius = 5,
+    width = 1,
+    color = 0xff,
+}
+padding = 5
 
 [custom-module]
 command = "date"
