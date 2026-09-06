@@ -114,7 +114,9 @@ fn has_valid_config(module_name: &str, is_group: bool, is_script: bool) -> bool 
         .map(|bool| u8::from(*bool))
         .sum::<u8>();
     if check == 0 {
-        error!("{module_name} should be either a group or a script module, it is neither, skipping");
+        error!(
+            "{module_name} should be either a group or a script module, it is neither, skipping"
+        );
         return false;
     }
     if check > 1 {

@@ -30,6 +30,7 @@ struct BatteryStatus {
 struct BatteryConfig {
     format: Box<str>,
     icons: Vec<char>,
+    charging_icons: Vec<char>,
     critical_threshold: u8,
     critical_foreground: Option<Color>,
 }
@@ -60,11 +61,19 @@ impl Battery {
         const ICON: &str = "{icon}";
         const MAXIMUM_BATTERY_PERCENTAGE: u16 = 100;
 
-        let icon = get_icon(
-            &self.config.icons,
-            self.status.percentage as u16,
-            MAXIMUM_BATTERY_PERCENTAGE,
-        );
+        let icon = if self.status.state == BatteryState::Charging {
+            get_icon(
+                &self.config.charging_icons,
+                self.status.percentage as u16,
+                MAXIMUM_BATTERY_PERCENTAGE,
+            )
+        } else {
+            get_icon(
+                &self.config.icons,
+                self.status.percentage as u16,
+                MAXIMUM_BATTERY_PERCENTAGE,
+            )
+        };
 
         self.config
             .format
@@ -122,10 +131,12 @@ impl Module for Battery {
         let style = CommonStyle::from(table);
 
         let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
+        let charging_icons = to_icon_list(get_str(table, "icons_charging").unwrap_or_default());
 
         let config = BatteryConfig {
             format: format.into(),
             icons,
+            charging_icons,
             critical_threshold,
             critical_foreground,
         };

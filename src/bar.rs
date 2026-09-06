@@ -186,7 +186,11 @@ impl Bar {
 
 impl BarConfig {
     pub fn new(theme: Theme, size: u32, spacing: u32) -> Self {
-        Self { theme, size, spacing }
+        Self {
+            theme,
+            size,
+            spacing,
+        }
     }
 }
 
