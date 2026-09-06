@@ -5,7 +5,6 @@ mod group;
 mod memory;
 mod pipewire;
 mod script;
-mod systray;
 mod temperature;
 mod workspaces;
 
@@ -36,7 +35,6 @@ pub mod reexports {
     pub use super::memory::Memory;
     pub use super::pipewire::PipeWire;
     pub use super::script::Script;
-    pub use super::systray::SysTray;
     pub use super::temperature::Temperature;
     pub use super::workspaces::Workspaces;
 }

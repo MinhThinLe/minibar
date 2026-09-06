@@ -1,6 +1,5 @@
 mod bar;
 mod config;
-mod dbus;
 mod logger;
 mod modules;
 
