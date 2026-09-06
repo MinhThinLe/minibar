@@ -104,17 +104,17 @@ pub(crate) fn get_modules(config_table: &Table, module_name_list: &Array) -> Vec
     modules
 }
 
-fn has_valid_config(is_group: bool, is_script: bool) -> bool {
+fn has_valid_config(module_name: &str, is_group: bool, is_script: bool) -> bool {
     let check = [is_group, is_script]
         .iter()
         .map(|bool| u8::from(*bool))
         .sum::<u8>();
     if check == 0 {
-        error!("Undefined custom module type, should be either group or script");
+        error!("{module_name} should be either a group or a script module, it is neither, skipping");
         return false;
     }
     if check > 1 {
-        error!("A custom module can't be of more than 1 type");
+        error!("{module_name} should be either a group or a script module, it is both, skipping");
         return false;
     }
 
@@ -140,7 +140,7 @@ fn get_custom_module(config_table: &Table, module_name: &str) -> Option<Box<dyn 
         .get("command")
         .is_some_and(|command| command.as_str().is_some());
 
-    if !has_valid_config(is_group, is_script) {
+    if !has_valid_config(module_name, is_group, is_script) {
         return None;
     }
 
