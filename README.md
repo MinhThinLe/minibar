@@ -9,7 +9,6 @@ Currently, there's support for the following modules
 - Clock
 - Cpu
 - Memory
-- Systray
 - Temperature
 - Workspaces (Only supports Niri atm)
 - Audio (Only supports pipewire atm)
@@ -19,6 +18,7 @@ Support for the following modules is planned
 - Bluetooth
 - Backlight
 - Idle inhibitor
+- Systray
 
 # Configuration
 
