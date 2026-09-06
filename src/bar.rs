@@ -14,11 +14,13 @@ use smithay_client_toolkit::reexports::client::protocol::wl_output::WlOutput;
 use smithay_client_toolkit::shell::wlr_layer::{Anchor, Layer};
 
 use crate::CONFIG;
+use crate::config::{DEFAULT_BAR_SIZE, DEFAULT_SPACING};
 use crate::modules::{Module, ModuleUpdate};
 
 pub struct BarConfig {
     theme: Theme,
     size: u32,
+    spacing: u32,
 }
 
 pub struct Bar {
@@ -74,18 +76,23 @@ impl Bar {
             .iter()
             .map(|module| module.view(current_output)))
         .height(Fill)
+        .spacing(self.config.spacing)
         .align_y(Center);
+
         let center_modules = row(self
             .center_modules
             .iter()
             .map(|module| module.view(current_output)))
         .height(Fill)
+        .spacing(self.config.spacing)
         .align_y(Center);
+
         let right_modules = row(self
             .right_modules
             .iter()
             .map(|module| module.view(current_output)))
         .height(Fill)
+        .spacing(self.config.spacing)
         .align_y(Center);
 
         row![
@@ -178,8 +185,8 @@ impl Bar {
 }
 
 impl BarConfig {
-    pub fn new(theme: Theme, size: u32) -> Self {
-        Self { theme, size }
+    pub fn new(theme: Theme, size: u32, spacing: u32) -> Self {
+        Self { theme, size, spacing }
     }
 }
 
@@ -200,7 +207,8 @@ impl Default for Bar {
     fn default() -> Self {
         let config = BarConfig {
             theme: Theme::Dark,
-            size: 32,
+            size: DEFAULT_BAR_SIZE,
+            spacing: DEFAULT_SPACING,
         };
 
         Bar {

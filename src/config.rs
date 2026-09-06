@@ -18,7 +18,8 @@ fn register_module<T: Module + NamedModule>() -> (ModuleInternalName, ModuleFact
     (name, factory_function)
 }
 
-const DEFAULT_BAR_SIZE: u32 = 32;
+pub const DEFAULT_BAR_SIZE: u32 = 32;
+pub const DEFAULT_SPACING: u32 = 0;
 
 static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunction>> =
     LazyLock::new(|| {
@@ -60,14 +61,17 @@ impl From<&Table> for Bar {
         let right_modules = get_modules(value, &right_modules_name);
 
         let theme = get_theme(bar_config);
-        let bar_size = || -> Option<u32> {
-            let value = bar_config.get("size")?;
+
+        let get_property = |property_name: &str| -> Option<u32> {
+            let value = bar_config.get(property_name)?;
             let int = value.as_integer()?;
             u32::try_from(int).ok()
-        }()
-        .unwrap_or(DEFAULT_BAR_SIZE);
+        };
 
-        let config = BarConfig::new(theme, bar_size);
+        let bar_size = get_property("size").unwrap_or(DEFAULT_BAR_SIZE);
+        let spacing = get_property("spacing").unwrap_or(DEFAULT_SPACING);
+
+        let config = BarConfig::new(theme, bar_size, spacing);
 
         Self {
             left_modules,
