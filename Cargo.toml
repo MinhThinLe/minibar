@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["icon-loader", "minibar-derives" ]
+members = [ "minibar-derives" ]
 
 [package]
 name = "minibar"
@@ -12,9 +12,10 @@ minibar-derives = {
     path = "./minibar-derives"
 }
 
-icon-loader = {
-    path = "./icon-loader"
-}
+# Not needed now but will be useful when I decide to implement a proper systray
+# icon-loader = {
+#     path = "./icon-loader"
+# }
 
 chrono = {
     version = "0.4.45",
@@ -32,8 +33,6 @@ iced = {
         "tiny-skia",
         "wayland",
         "winit",
-        "image",
-        "svg",
     ]
 }
 
