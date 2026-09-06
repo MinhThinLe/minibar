@@ -51,4 +51,3 @@ toml = {
     default-features = false,
     features = [ "serde", "parse" ]
 }
-dbus = "0.9.12"
