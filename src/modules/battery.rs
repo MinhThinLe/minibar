@@ -64,13 +64,13 @@ impl Battery {
         let icon = if self.status.state == BatteryState::Charging {
             get_icon(
                 &self.config.charging_icons,
-                self.status.percentage as u16,
+                u16::from(self.status.percentage),
                 MAXIMUM_BATTERY_PERCENTAGE,
             )
         } else {
             get_icon(
                 &self.config.icons,
-                self.status.percentage as u16,
+                u16::from(self.status.percentage),
                 MAXIMUM_BATTERY_PERCENTAGE,
             )
         };

@@ -78,8 +78,8 @@ impl Module for Temperature {
         let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
 
         let config = TemperatureConfig {
-            icons,
             format,
+            icons,
             critical_threshold,
             critical_foreground,
         };
