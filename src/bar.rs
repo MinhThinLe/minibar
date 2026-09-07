@@ -97,7 +97,7 @@ impl Bar {
 
         row![
             container(left_modules).align_left(Fill),
-            container(center_modules).center(Fill),
+            container(center_modules),
             container(right_modules).align_right(Fill)
         ]
         .into()
