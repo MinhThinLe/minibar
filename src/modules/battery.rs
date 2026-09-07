@@ -173,19 +173,17 @@ fn read_battery_info() -> BatteryStatus {
 fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async move |mut output| {
         let poll_interval = get_poll_interval("battery");
-        let mut content = read_battery_info();
+        let mut content = BatteryStatus::default();
 
-        send_data(&mut output, module_id, content).await;
         loop {
-            sleep(poll_interval);
             let new_content = read_battery_info();
 
-            if new_content == content {
-                continue;
+            if new_content != content {
+                content = new_content;
+                send_data(&mut output, module_id, content).await;
             }
 
-            send_data(&mut output, module_id, content).await;
-            content = new_content;
+            sleep(poll_interval);
         }
     })
 }
