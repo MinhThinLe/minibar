@@ -1,3 +1,4 @@
+mod backlight;
 mod battery;
 mod clock;
 mod cpu;
@@ -28,6 +29,7 @@ use crate::modules::module_id::ModuleId;
 
 pub mod reexports {
     pub use super::Module;
+    pub use super::backlight::Backlight;
     pub use super::battery::Battery;
     pub use super::clock::Clock;
     pub use super::cpu::Cpu;

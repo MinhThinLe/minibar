@@ -32,7 +32,7 @@ static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunc
             register_module::<Temperature>(),
             // TODO: Implement bluetooth module
             register_module::<PipeWire>(),
-            // TODO: Implement backlight module
+            register_module::<Backlight>(),
             // TODO: Implement idle inhibitor module
         ];
 
