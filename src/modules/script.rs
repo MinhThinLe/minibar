@@ -44,7 +44,7 @@ impl Module for Script {
     }
 
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
-        container(text(&self.output_buffer))
+        container(text(&self.output_buffer).wrapping(text::Wrapping::None))
             .padding(self.style.padding)
             .style(|_theme| container::Style {
                 text_color: self.style.foreground,
