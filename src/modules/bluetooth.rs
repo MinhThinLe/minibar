@@ -70,11 +70,15 @@ impl Module for Bluetooth {
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
         let any_connected = self.devices.iter().any(|device| device.connected);
         if !any_connected {
-            return text(self.get_text_idle()).into();
+            return container(text(self.get_text_idle()))
+                .padding(self.style.padding)
+                .into();
         }
 
         if !self.is_powered {
-            return text(self.get_text_disabled()).into();
+            return container(text(self.get_text_disabled()))
+                .padding(self.style.padding)
+                .into();
         }
 
         let devices = self.devices.iter().filter_map(|device| {
