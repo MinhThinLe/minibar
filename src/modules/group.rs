@@ -1,9 +1,3 @@
-use iced::{
-    Background,
-    widget::{container, row},
-};
-use log::error;
-
 use crate::config::get_modules;
 
 use super::*;
@@ -35,7 +29,7 @@ impl Module for Group {
             .padding(self.style.padding)
             .style(|_theme| container::Style {
                 text_color: self.style.foreground,
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -88,9 +82,5 @@ impl Group {
             style,
             spacing,
         }
-    }
-
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
     }
 }

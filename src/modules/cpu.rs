@@ -1,14 +1,6 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::str::FromStr;
 use std::thread::sleep;
-
-use iced::futures::Stream;
-use iced::widget::{container, text};
-use iced::{Background, Color, Subscription, stream};
-use minibar_derives::{ModuleData, NamedModule};
-
-use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -56,7 +48,7 @@ impl Module for Cpu {
             .padding(self.style.padding)
             .style(|_old_style| container::Style {
                 text_color: self.get_color(),
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -157,10 +149,6 @@ impl Cpu {
             return Some(foreground);
         }
         self.config.critical_foreground
-    }
-
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
     }
 
     fn get_text(&self) -> String {

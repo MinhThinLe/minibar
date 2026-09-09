@@ -4,14 +4,6 @@ use dbus::Message;
 use dbus::arg::RefArg;
 use dbus::blocking::Connection;
 
-use iced::futures::Stream;
-use iced::stream;
-use iced::widget::{container, row, text};
-
-use log::{error, warn};
-
-use minibar_derives::{ModuleData, NamedModule};
-
 use crate::dbus::bluetooth_adapter::OrgBluezAdapter1;
 use crate::dbus::object_manager::OrgFreedesktopDBusObjectManager;
 use crate::dbus::properties::DBusPropertiesChanged;
@@ -111,13 +103,14 @@ impl Module for Bluetooth {
         let icon_map = || -> Option<HashMap<String, char>> {
             let icon_map = table.get("icon_map")?;
             let icon_map = icon_map.as_table()?;
-            Some(HashMap::from_iter(icon_map.iter().filter_map(
-                |(key, value)| {
+            Some(
+                (icon_map.iter().filter_map(|(key, value)| {
                     value
                         .as_str()
                         .map(|value| (key.clone(), value.chars().next().unwrap_or_default()))
-                },
-            )))
+                }))
+                .collect(),
+            )
         }()
         .unwrap_or_default();
 

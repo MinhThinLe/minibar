@@ -1,15 +1,5 @@
-use std::{process::Command, thread::sleep};
-
-use iced::{
-    Background,
-    futures::Stream,
-    stream,
-    widget::{container, text},
-};
-use log::error;
-use minibar_derives::ModuleData;
-
-use crate::modules::module_id::module_id_unique;
+use std::process::Command;
+use std::thread::sleep;
 
 use super::*;
 
@@ -48,7 +38,7 @@ impl Module for Script {
             .padding(self.style.padding)
             .style(|_theme| container::Style {
                 text_color: self.style.foreground,
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -94,12 +84,6 @@ impl Module for Script {
             style,
             output_buffer: String::new(),
         })
-    }
-}
-
-impl Script {
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
     }
 }
 

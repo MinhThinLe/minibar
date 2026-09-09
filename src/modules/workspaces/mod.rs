@@ -1,16 +1,6 @@
 mod niri;
 
-use iced::futures::Stream;
-use iced::stream;
-use iced::widget::{Text, button, row, text};
-use iced::{Background, Color, Subscription};
-
-use log::{info, warn};
-use minibar_derives::{ModuleData, NamedModule};
-use toml::Table;
-
-use crate::bar::Output;
-use crate::modules::module_id::module_id_unique;
+use iced::widget::{Text, button};
 
 use super::*;
 

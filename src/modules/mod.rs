@@ -19,9 +19,13 @@ use std::time::Duration;
 
 use downcast_rs::{DowncastSync, impl_downcast};
 use iced::border::Radius;
-use iced::futures::SinkExt;
 use iced::futures::channel::mpsc::Sender;
-use iced::{Background, Border, Color, Element, Padding, Subscription};
+use iced::futures::{SinkExt, Stream};
+use iced::widget::{container, row, text};
+use iced::{Background, Border, Color, Element, Padding, Subscription, stream};
+
+use log::{error, info, warn};
+
 use toml::value::Array;
 use toml::{Table, Value};
 
@@ -29,6 +33,8 @@ use crate::CONFIG;
 use crate::bar::{BarEvent, Output};
 use crate::modules::module_id::ModuleId;
 use module_id::module_id_unique;
+
+use minibar_derives::{ModuleData, NamedModule};
 
 pub use group::Group;
 pub use script::Script;

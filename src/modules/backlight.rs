@@ -1,15 +1,6 @@
-use std::{fs, path::PathBuf, thread::sleep};
-
-use iced::{
-    Background,
-    futures::Stream,
-    stream,
-    widget::{container, text},
-};
-use log::error;
-use minibar_derives::{ModuleData, NamedModule};
-
-use crate::modules::module_id::module_id_unique;
+use std::fs;
+use std::path::PathBuf;
+use std::thread::sleep;
 
 use super::*;
 
@@ -65,7 +56,7 @@ impl Module for Backlight {
             .padding(self.style.padding)
             .style(|_theme| container::Style {
                 text_color: self.style.foreground,
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -177,10 +168,6 @@ impl Backlight {
             .format
             .replace(PERCENTAGE, &percentage.to_string())
             .replace(ICON, &icon.to_string())
-    }
-
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
     }
 }
 

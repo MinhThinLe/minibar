@@ -1,14 +1,6 @@
 use std::str::FromStr;
 use std::thread::sleep;
 
-use iced::futures::Stream;
-use iced::widget::{container, text};
-use iced::{Background, Color, Element, Subscription, stream};
-use minibar_derives::{ModuleData, NamedModule};
-use toml::Table;
-
-use crate::modules::module_id::module_id_unique;
-
 use super::*;
 
 const DEFAULT_FORMAT: &str = "BAT: {percentage}%";
@@ -88,10 +80,6 @@ impl Battery {
 
         self.style.foreground
     }
-
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
-    }
 }
 
 impl Module for Battery {
@@ -100,7 +88,7 @@ impl Module for Battery {
             .padding(self.style.padding)
             .style(|_idk| container::Style {
                 text_color: self.get_color(),
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })

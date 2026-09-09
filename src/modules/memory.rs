@@ -1,16 +1,6 @@
 use std::fmt::Display;
 use std::fs;
-use std::str::FromStr;
 use std::thread::sleep;
-
-use iced::Background;
-use iced::futures::Stream;
-use iced::stream;
-use iced::widget::{container, text};
-
-use minibar_derives::{ModuleData, NamedModule};
-
-use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -56,7 +46,7 @@ impl Module for Memory {
             .padding(self.style.padding)
             .style(|_theme| container::Style {
                 text_color: self.get_color(),
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -176,10 +166,6 @@ impl Memory {
         }
 
         self.style.foreground
-    }
-
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
     }
 }
 

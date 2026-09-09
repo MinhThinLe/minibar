@@ -1,11 +1,4 @@
 use chrono::Local;
-use iced::{
-    Background,
-    widget::{container, text},
-};
-use minibar_derives::NamedModule;
-
-use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -29,7 +22,7 @@ impl Module for Clock {
             .padding(self.style.padding)
             .style(|_idk| container::Style {
                 text_color: self.style.foreground,
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -58,11 +51,5 @@ impl Module for Clock {
 
     fn id(&self) -> &[ModuleId] {
         &self.id
-    }
-}
-
-impl Clock {
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
     }
 }

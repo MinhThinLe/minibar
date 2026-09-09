@@ -2,16 +2,6 @@ use std::io::{BufRead, BufReader};
 use std::process::Command;
 use std::process::Stdio;
 use std::sync::mpsc;
-use std::time::Duration;
-
-use iced::Background;
-use iced::widget::{container, text};
-use iced::{Element, Subscription, futures::Stream, stream};
-use log::error;
-use minibar_derives::{ModuleData, NamedModule};
-use toml::Table;
-
-use crate::modules::module_id::module_id_unique;
 
 use super::*;
 
@@ -60,7 +50,7 @@ impl Module for PipeWire {
             .padding(self.style.padding)
             .style(|_theme| container::Style {
                 text_color: self.style.foreground,
-                background: self.get_background(),
+                background: self.style.get_background(),
                 border: self.style.border,
                 ..Default::default()
             })
@@ -126,10 +116,6 @@ impl PipeWire {
             )
             .replace("{icon_muted}", &self.config.icon_muted)
             .replace("{volume}", &self.volume.level.to_string())
-    }
-
-    fn get_background(&self) -> Option<Background> {
-        Some(Background::Color(self.style.background?))
     }
 }
 
