@@ -13,6 +13,7 @@ use super::*;
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(1);
 const DEFAULT_FORMAT_DISABLED: &str = "BT: off";
 const DEFAULT_DEVICE_FORMAT: &str = "{name} {battery_percentage}";
+const DEFAULT_FORMAT_IDLE: &str = "BT: idle";
 const DEFAULT_SPACING: u16 = 0;
 
 #[derive(ModuleData, Debug)]
@@ -36,7 +37,8 @@ struct BluetoothDevice {
 struct BluetoothConfig {
     icon_map: HashMap<String, char>,
     format_disabled: Box<str>,
-    device_format: Box<str>,
+    format_idle: Box<str>,
+    format_device: Box<str>,
     spacing: u16,
 }
 
@@ -66,6 +68,11 @@ impl Module for Bluetooth {
     }
 
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
+        let any_connected = self.devices.iter().any(|device| device.connected);
+        if !any_connected {
+            return text(self.get_text_idle()).into();
+        }
+
         if !self.is_powered {
             return text(self.get_text_disabled()).into();
         }
@@ -73,7 +80,7 @@ impl Module for Bluetooth {
         let devices = self.devices.iter().filter_map(|device| {
             device.connected.then_some(device.view(
                 &self.config.icon_map,
-                &self.config.device_format,
+                &self.config.format_device,
                 self.style,
             ))
         });
@@ -117,15 +124,19 @@ impl Module for Bluetooth {
         let format_disabled = get_str(table, "format_disabled")
             .unwrap_or(DEFAULT_FORMAT_DISABLED)
             .into();
-        let device_format = get_str(table, "format_device")
+        let format_device = get_str(table, "format_device")
             .unwrap_or(DEFAULT_DEVICE_FORMAT)
+            .into();
+        let format_idle = get_str(table, "format_idle")
+            .unwrap_or(DEFAULT_FORMAT_IDLE)
             .into();
         let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |spacing| spacing as u16);
 
         let config = BluetoothConfig {
             icon_map,
             format_disabled,
-            device_format,
+            format_idle,
+            format_device,
             spacing,
         };
 
@@ -170,6 +181,10 @@ impl Bluetooth {
 
     fn get_text_disabled(&self) -> String {
         self.config.format_disabled.to_string()
+    }
+
+    fn get_text_idle(&self) -> String {
+        self.config.format_idle.to_string()
     }
 }
 
