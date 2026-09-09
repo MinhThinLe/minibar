@@ -1,43 +1,12 @@
-use std::collections::HashMap;
-use std::sync::LazyLock;
-
 use iced::Theme;
 use log::{error, warn};
 use toml::{Table, Value, value::Array};
 
 use crate::bar::{Bar, BarConfig};
-use crate::modules::{NamedModule, reexports::*};
-
-type ModuleFactoryFunction = fn(&Table) -> Box<dyn Module>;
-type ModuleInternalName = &'static str;
-
-fn register_module<T: Module + NamedModule>() -> (ModuleInternalName, ModuleFactoryFunction) {
-    let name = T::name();
-    let factory_function = T::new_or_default;
-
-    (name, factory_function)
-}
+use crate::modules::{FACTORY_FUNCTIONS, Module, Script, Group};
 
 pub const DEFAULT_BAR_SIZE: u32 = 32;
 pub const DEFAULT_SPACING: u32 = 0;
-
-static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunction>> =
-    LazyLock::new(|| {
-        let modules = vec![
-            register_module::<Battery>(),
-            register_module::<Cpu>(),
-            register_module::<Workspaces>(),
-            register_module::<Clock>(),
-            register_module::<Memory>(),
-            register_module::<Temperature>(),
-            // TODO: Implement bluetooth module
-            register_module::<PipeWire>(),
-            register_module::<Backlight>(),
-            // TODO: Implement idle inhibitor module
-        ];
-
-        HashMap::from_iter(modules)
-    });
 
 impl From<&Table> for Bar {
     fn from(value: &Table) -> Self {

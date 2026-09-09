@@ -9,10 +9,11 @@ mod script;
 mod temperature;
 mod workspaces;
 
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::Path;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
 use downcast_rs::{DowncastSync, impl_downcast};
@@ -27,19 +28,36 @@ use crate::CONFIG;
 use crate::bar::{BarEvent, Output};
 use crate::modules::module_id::ModuleId;
 
-pub mod reexports {
-    pub use super::Module;
-    pub use super::backlight::Backlight;
-    pub use super::battery::Battery;
-    pub use super::clock::Clock;
-    pub use super::cpu::Cpu;
-    pub use super::group::Group;
-    pub use super::memory::Memory;
-    pub use super::pipewire::PipeWire;
-    pub use super::script::Script;
-    pub use super::temperature::Temperature;
-    pub use super::workspaces::Workspaces;
+pub use script::Script;
+pub use group::Group;
+
+type ModuleFactoryFunction = fn(&Table) -> Box<dyn Module>;
+type ModuleInternalName = &'static str;
+
+fn register_module<T: Module + NamedModule>() -> (ModuleInternalName, ModuleFactoryFunction) {
+    let name = T::name();
+    let factory_function = T::new_or_default;
+
+    (name, factory_function)
 }
+
+pub static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactoryFunction>> =
+    LazyLock::new(|| {
+        let modules = vec![
+            register_module::<battery::Battery>(),
+            register_module::<cpu::Cpu>(),
+            register_module::<workspaces::Workspaces>(),
+            register_module::<clock::Clock>(),
+            register_module::<memory::Memory>(),
+            register_module::<temperature::Temperature>(),
+            // TODO: Implement bluetooth module
+            register_module::<pipewire::PipeWire>(),
+            register_module::<backlight::Backlight>(),
+            // TODO: Implement idle inhibitor module
+        ];
+
+        HashMap::from_iter(modules)
+    });
 
 mod module_id {
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -65,11 +83,11 @@ const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(1);
 pub struct ModuleUpdate(pub ModuleId, pub Arc<dyn ModuleData>);
 
 #[derive(Debug, Default)]
-pub struct CommonStyle {
-    pub padding: Padding,
-    pub border: Border,
-    pub background: Option<Color>,
-    pub foreground: Option<Color>,
+struct CommonStyle {
+    padding: Padding,
+    border: Border,
+    background: Option<Color>,
+    foreground: Option<Color>,
 }
 
 pub trait ModuleData: DowncastSync {}
