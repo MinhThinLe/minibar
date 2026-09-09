@@ -13,10 +13,10 @@ Currently, there's support for the following modules
 - Workspaces (Only supports Niri atm)
 - Audio (Only supports pipewire atm)
 - Group
-
-Support for the following modules is planned
 - Bluetooth
 - Backlight
+
+Support for the following modules is planned
 - Idle inhibitor
 - Systray
 
