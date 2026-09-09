@@ -68,6 +68,12 @@ impl Module for Bluetooth {
     }
 
     fn view(&self, _output: &Output) -> Element<'_, BarEvent> {
+        if !self.is_powered {
+            return container(text(self.get_text_disabled()))
+                .padding(self.style.padding)
+                .into();
+        }
+
         let any_connected = self.devices.iter().any(|device| device.connected);
         if !any_connected {
             return container(text(self.get_text_idle()))
@@ -75,11 +81,6 @@ impl Module for Bluetooth {
                 .into();
         }
 
-        if !self.is_powered {
-            return container(text(self.get_text_disabled()))
-                .padding(self.style.padding)
-                .into();
-        }
 
         let devices = self.devices.iter().filter_map(|device| {
             device.connected.then_some(device.view(
