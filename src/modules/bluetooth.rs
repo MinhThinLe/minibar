@@ -6,7 +6,7 @@ use dbus::blocking::Connection;
 
 use iced::futures::Stream;
 use iced::stream;
-use iced::widget::{row, text};
+use iced::widget::{container, row, text};
 
 use log::{error, warn};
 
@@ -19,6 +19,9 @@ use crate::dbus::properties::DBusPropertiesChanged;
 use super::*;
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(1);
+const DEFAULT_FORMAT_DISABLED: &str = "BT: off";
+const DEFAULT_DEVICE_FORMAT: &str = "{name} {battery_percentage}";
+const DEFAULT_SPACING: u16 = 0;
 
 #[derive(ModuleData, Debug)]
 enum BluetoothEvent {
@@ -33,6 +36,7 @@ enum BluetoothEvent {
 struct BluetoothDevice {
     battery_percentage: Option<u8>,
     icon_name: String,
+    name: String,
     path: String,
     connected: bool,
 }
@@ -75,9 +79,11 @@ impl Module for Bluetooth {
         }
 
         let devices = self.devices.iter().filter_map(|device| {
-            device
-                .connected
-                .then_some(device.view(&self.config.icon_map, &self.config.device_format))
+            device.connected.then_some(device.view(
+                &self.config.icon_map,
+                &self.config.device_format,
+                self.style,
+            ))
         });
 
         row(devices)
@@ -102,17 +108,32 @@ impl Module for Bluetooth {
     {
         let id = [module_id_unique()];
 
-        let icon_map = HashMap::from_iter([
-            ("input-keyboard".to_string(), '󰌌'),
-            ("input-mouse".to_string(), '󰍽'),
-            ("audio-headset".to_string(), '󰋎'),
-        ]);
+        let icon_map = || -> Option<HashMap<String, char>> {
+            let icon_map = table.get("icon_map")?;
+            let icon_map = icon_map.as_table()?;
+            Some(HashMap::from_iter(icon_map.iter().filter_map(
+                |(key, value)| {
+                    value
+                        .as_str()
+                        .map(|value| (key.clone(), value.chars().next().unwrap_or_default()))
+                },
+            )))
+        }()
+        .unwrap_or_default();
+
+        let format_disabled = get_str(table, "format_disabled")
+            .unwrap_or(DEFAULT_FORMAT_DISABLED)
+            .into();
+        let device_format = get_str(table, "format_device")
+            .unwrap_or(DEFAULT_DEVICE_FORMAT)
+            .into();
+        let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |spacing| spacing as u16);
 
         let config = BluetoothConfig {
             icon_map,
-            format_disabled: "off".into(),
-            device_format: "{icon} {battery_percentage}".into(),
-            spacing: 3,
+            format_disabled,
+            device_format,
+            spacing,
         };
 
         let style = CommonStyle::from(table);
@@ -160,9 +181,15 @@ impl Bluetooth {
 }
 
 impl BluetoothDevice {
-    fn view(&self, icon_map: &HashMap<String, char>, format: &str) -> Element<'_, BarEvent> {
+    fn view(
+        &self,
+        icon_map: &HashMap<String, char>,
+        format: &str,
+        style: CommonStyle,
+    ) -> Element<'_, BarEvent> {
         const ICON: &str = "{icon}";
         const BATTERY: &str = "{battery_percentage}";
+        const NAME: &str = "{name}";
 
         let icon = icon_map.get(&self.icon_name).copied().unwrap_or_default();
 
@@ -178,12 +205,20 @@ impl BluetoothDevice {
             );
         }
 
-        text(
-            format
-                .replace(BATTERY, &battery_percentage)
-                .replace(ICON, &icon.to_string()),
-        )
-        .into()
+        let mut content = format
+            .replace(BATTERY, &battery_percentage)
+            .replace(ICON, &icon.to_string())
+            .replace(NAME, &self.name);
+        content.truncate(content.trim_end().len());
+
+        container(text(content))
+            .style(move |_theme| container::Style {
+                text_color: style.foreground,
+                background: style.get_background(),
+                border: style.border,
+                ..Default::default()
+            })
+            .into()
     }
 }
 
@@ -323,18 +358,21 @@ fn get_bluetooth_devices(connection: &Connection) -> Vec<BluetoothDevice> {
         }()
         .unwrap_or_default();
 
-        let icon = || -> Option<String> {
+        let get_string = |name| -> Option<String> {
             let device_info = device.get("org.bluez.Device1")?;
-            let icon = device_info.get("Icon")?;
+            let icon = device_info.get(name)?;
             icon.as_str().map(ToString::to_string)
-        }()
-        .unwrap_or_default();
+        };
+
+        let icon_name = get_string("Icon").unwrap_or_default();
+        let name = get_string("Name").unwrap_or_default();
 
         let bluetooth_device = BluetoothDevice {
             battery_percentage,
             path: path.to_string(),
             connected,
-            icon_name: icon,
+            icon_name,
+            name,
         };
 
         bluetooth_devices.push(bluetooth_device);

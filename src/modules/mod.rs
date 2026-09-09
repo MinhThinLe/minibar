@@ -21,7 +21,7 @@ use downcast_rs::{DowncastSync, impl_downcast};
 use iced::border::Radius;
 use iced::futures::SinkExt;
 use iced::futures::channel::mpsc::Sender;
-use iced::{Border, Color, Element, Padding, Subscription};
+use iced::{Background, Border, Color, Element, Padding, Subscription};
 use toml::value::Array;
 use toml::{Table, Value};
 
@@ -84,7 +84,7 @@ const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(1);
 #[derive(Clone)]
 pub struct ModuleUpdate(pub ModuleId, pub Arc<dyn ModuleData>);
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 struct CommonStyle {
     padding: Padding,
     border: Border,
@@ -130,6 +130,12 @@ impl From<&Table> for CommonStyle {
             background,
             foreground,
         }
+    }
+}
+
+impl CommonStyle {
+    fn get_background(&self) -> Option<Background> {
+        Some(Background::Color(self.background?))
     }
 }
 
