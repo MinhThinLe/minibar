@@ -3,7 +3,7 @@ use log::{error, warn};
 use toml::{Table, Value, value::Array};
 
 use crate::bar::{Bar, BarConfig};
-use crate::modules::{FACTORY_FUNCTIONS, Module, Script, Group};
+use crate::modules::{FACTORY_FUNCTIONS, Group, Module, Script};
 
 pub const DEFAULT_BAR_SIZE: u32 = 32;
 pub const DEFAULT_SPACING: u32 = 0;

@@ -1,5 +1,6 @@
 mod backlight;
 mod battery;
+mod bluetooth;
 mod clock;
 mod cpu;
 mod group;
@@ -27,9 +28,10 @@ use toml::{Table, Value};
 use crate::CONFIG;
 use crate::bar::{BarEvent, Output};
 use crate::modules::module_id::ModuleId;
+use module_id::module_id_unique;
 
-pub use script::Script;
 pub use group::Group;
+pub use script::Script;
 
 type ModuleFactoryFunction = fn(&Table) -> Box<dyn Module>;
 type ModuleInternalName = &'static str;
@@ -50,7 +52,7 @@ pub static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactory
             register_module::<clock::Clock>(),
             register_module::<memory::Memory>(),
             register_module::<temperature::Temperature>(),
-            // TODO: Implement bluetooth module
+            register_module::<bluetooth::Bluetooth>(),
             register_module::<pipewire::PipeWire>(),
             register_module::<backlight::Backlight>(),
             // TODO: Implement idle inhibitor module
