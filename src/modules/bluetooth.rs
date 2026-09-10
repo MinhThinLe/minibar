@@ -414,9 +414,11 @@ fn get_bluetooth_devices(connection: &Connection) -> Vec<BluetoothDevice> {
         let icon_name = get_string("Icon").unwrap_or_default();
         let name = get_string("Name").unwrap_or_default();
 
+        let path = path.to_string().into();
+
         let bluetooth_device = BluetoothDevice {
             battery_percentage,
-            path: path.to_string().into(),
+            path,
             connected,
             icon_name,
             name,
@@ -429,6 +431,11 @@ fn get_bluetooth_devices(connection: &Connection) -> Vec<BluetoothDevice> {
 }
 
 fn should_update_device(changed_properties: &DBusPropertiesChanged) -> bool {
+    // Since bluez for whatever reason won't notify its API consumers about whether any properties
+    // in `org.bluez.Battery1` changed and `org.bluez.Device1` isn't a good proxy for
+    // `org.bluez.Battery1` since it has some delay. For the time being, this is the only solution
+    // that I could think of that doesn't involve polling.
+    std::thread::sleep(DEFAULT_TIMEOUT);
     changed_properties.interface == "org.bluez.Device1"
         || changed_properties.interface == "org.bluez.Battery1"
 }
