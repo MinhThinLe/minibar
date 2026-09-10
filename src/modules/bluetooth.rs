@@ -1,12 +1,12 @@
 use std::sync::mpsc::{Sender, TryRecvError, channel};
 
-use dbus::Message;
 use dbus::arg::RefArg;
 use dbus::blocking::Connection;
+use dbus::{Message, Path};
 
 use crate::dbus::bluetooth_adapter::OrgBluezAdapter1;
 use crate::dbus::object_manager::OrgFreedesktopDBusObjectManager;
-use crate::dbus::properties::DBusPropertiesChanged;
+use crate::dbus::properties::{DBusPropertiesChanged, OrgFreedesktopDBusProperties};
 
 use super::*;
 
@@ -19,8 +19,7 @@ const DEFAULT_SPACING: u16 = 0;
 #[derive(ModuleData, Debug)]
 enum BluetoothEvent {
     NewDevice(BluetoothDevice),
-    DeviceConnected(String),
-    DeviceDisconnected(String),
+    DeviceUpdated(BluetoothDevice),
     ControllerPoweredOff,
     ControllerPoweredOn,
 }
@@ -28,9 +27,9 @@ enum BluetoothEvent {
 #[derive(Debug, Clone)]
 struct BluetoothDevice {
     battery_percentage: Option<u8>,
-    icon_name: String,
-    name: String,
-    path: String,
+    icon_name: Box<str>,
+    name: Box<str>,
+    path: Box<str>,
     connected: bool,
 }
 
@@ -60,8 +59,7 @@ impl Module for Bluetooth {
 
         match bluetooth_event {
             BluetoothEvent::NewDevice(device) => self.devices.push(device.clone()),
-            BluetoothEvent::DeviceConnected(device_path) => self.activate_device(device_path),
-            BluetoothEvent::DeviceDisconnected(device_path) => self.deactivate_device(device_path),
+            BluetoothEvent::DeviceUpdated(device) => self.update_device(device.clone()),
             BluetoothEvent::ControllerPoweredOff => self.is_powered = false,
             BluetoothEvent::ControllerPoweredOn => self.is_powered = true,
         }
@@ -80,7 +78,6 @@ impl Module for Bluetooth {
                 .padding(self.style.padding)
                 .into();
         }
-
 
         let devices = self.devices.iter().filter_map(|device| {
             device.connected.then_some(device.view(
@@ -158,30 +155,17 @@ impl Module for Bluetooth {
 }
 
 impl Bluetooth {
-    fn activate_device(&mut self, device_path: &str) {
-        let Some(device) = self
-            .devices
+    fn get_device_mut(&mut self, device_path: &str) -> Option<&mut BluetoothDevice> {
+        self.devices
             .iter_mut()
-            .find(|device| device.path == device_path)
-        else {
-            error!("Requested to activate a non-existent device");
-            return;
-        };
-
-        device.connected = true;
+            .find(|device| device.path.as_ref() == device_path)
     }
 
-    fn deactivate_device(&mut self, device_path: &str) {
-        let Some(device) = self
-            .devices
-            .iter_mut()
-            .find(|device| device.path == device_path)
-        else {
-            error!("Requested to deactivate a non-existent device");
+    fn update_device(&mut self, new_device: BluetoothDevice) {
+        let Some(device) = self.get_device_mut(&new_device.path) else {
             return;
         };
-
-        device.connected = false;
+        *device = new_device;
     }
 
     fn get_text_disabled(&self) -> String {
@@ -204,7 +188,7 @@ impl BluetoothDevice {
         const BATTERY: &str = "{battery_percentage}";
         const NAME: &str = "{name}";
 
-        let icon = icon_map.get(&self.icon_name).copied().unwrap_or_default();
+        let icon = icon_map.get(self.icon_name.as_ref()).copied().unwrap_or_default();
 
         let battery_percentage = self
             .battery_percentage
@@ -232,6 +216,47 @@ impl BluetoothDevice {
                 ..Default::default()
             })
             .into()
+    }
+
+    fn new_from_connection(connection: &Connection, device_path: &Path<'_>) -> Option<Self> {
+        let device_proxy = connection.with_proxy("org.bluez", device_path, DEFAULT_TIMEOUT);
+
+        let battery_percentage = device_proxy
+            .get("org.bluez.Battery1", "Percentage")
+            .ok()
+            .map(|prop| {
+                prop.as_u64()
+                    .expect("Battery percentage should be of type byte") as u8
+            });
+        let icon_name = device_proxy
+            .get("org.bluez.Device1", "Icon")
+            .ok()
+            .map(|prop| {
+                prop.as_str()
+                    .expect("Icon should be of type string")
+                    .into()
+            })?;
+        let name = device_proxy
+            .get("org.bluez.Device1", "Name")
+            .ok()
+            .map(|prop| {
+                prop.as_str()
+                    .expect("Name should be of type string")
+                    .into()
+            })?;
+        let path = device_path.to_string().into();
+        let connected = device_proxy
+            .get("org.bluez.Device1", "Connected")
+            .ok()
+            .map(|prop| prop.as_u64().expect("Connected should be of type boolean") == 1)?;
+
+        Some(Self {
+            battery_percentage,
+            icon_name,
+            name,
+            path,
+            connected,
+        })
     }
 }
 
@@ -328,17 +353,26 @@ fn setup_device_event_listeners(
     sender: &Sender<BluetoothEvent>,
 ) {
     for device in devices {
-        let device_proxy = connection.with_proxy("org.bluez", &device.path, DEFAULT_TIMEOUT);
+        let device_proxy = connection.with_proxy("org.bluez", device.path.as_ref(), DEFAULT_TIMEOUT);
         let sender = sender.clone();
         device_proxy
             .match_signal(
-                move |signal: DBusPropertiesChanged,
-                      _connection: &Connection,
-                      message: &Message| {
-                    if let Some(event) = handle_device_signal(&signal, message) {
-                        sender.send(event).expect("Unable to send a message");
-                        println!("Sent device event");
+                move |signal: DBusPropertiesChanged, connection: &Connection, message: &Message| {
+                    if !should_update_device(&signal) {
+                        return true;
                     }
+                    let Some(path) = message.path() else {
+                        return true;
+                    };
+                    let Some(updated_device) =
+                        BluetoothDevice::new_from_connection(connection, &path)
+                    else {
+                        return true;
+                    };
+
+                    sender
+                        .send(BluetoothEvent::DeviceUpdated(updated_device))
+                        .expect("Unable to send a message");
                     true
                 },
             )
@@ -371,10 +405,10 @@ fn get_bluetooth_devices(connection: &Connection) -> Vec<BluetoothDevice> {
         }()
         .unwrap_or_default();
 
-        let get_string = |name| -> Option<String> {
+        let get_string = |name| -> Option<Box<str>> {
             let device_info = device.get("org.bluez.Device1")?;
             let icon = device_info.get(name)?;
-            icon.as_str().map(ToString::to_string)
+            icon.as_str().map(std::convert::Into::into)
         };
 
         let icon_name = get_string("Icon").unwrap_or_default();
@@ -382,7 +416,7 @@ fn get_bluetooth_devices(connection: &Connection) -> Vec<BluetoothDevice> {
 
         let bluetooth_device = BluetoothDevice {
             battery_percentage,
-            path: path.to_string(),
+            path: path.to_string().into(),
             connected,
             icon_name,
             name,
@@ -394,20 +428,7 @@ fn get_bluetooth_devices(connection: &Connection) -> Vec<BluetoothDevice> {
     bluetooth_devices
 }
 
-fn handle_device_signal(
-    changed_properties: &DBusPropertiesChanged,
-    message: &Message,
-) -> Option<BluetoothEvent> {
-    let path = message.path()?.to_string();
-    let is_connected = changed_properties
-        .changed_properties
-        .get("Connected")?
-        .as_u64()
-        .map(|num| num == 1);
-
-    if is_connected.unwrap_or_default() {
-        Some(BluetoothEvent::DeviceConnected(path))
-    } else {
-        Some(BluetoothEvent::DeviceDisconnected(path))
-    }
+fn should_update_device(changed_properties: &DBusPropertiesChanged) -> bool {
+    changed_properties.interface == "org.bluez.Device1"
+        || changed_properties.interface == "org.bluez.Battery1"
 }
