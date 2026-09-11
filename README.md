@@ -1,3 +1,5 @@
+Migrated to [Codeberg](https://codeberg.org/Burnt_T0ast/minibar)
+
 # Minibar (name WIP)
 
 A status bar for wayland that's meant to do less (with less, duh)
