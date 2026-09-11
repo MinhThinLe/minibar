@@ -1,8 +1,9 @@
 use std::fmt::Display;
 use std::fs;
+use std::str::FromStr;
 use std::thread::sleep;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_FORMAT: &str = "RAM: {usage}";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 80;

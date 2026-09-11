@@ -1,7 +1,8 @@
 use std::process::Command;
+use std::sync::Arc;
 use std::thread::sleep;
 
-use super::*;
+use super::prelude::*;
 
 #[derive(ModuleData)]
 struct CommandOutput(String);

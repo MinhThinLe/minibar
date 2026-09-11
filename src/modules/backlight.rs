@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::thread::sleep;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_FORMAT: &str = "LIGHT: {percentage}%";
 

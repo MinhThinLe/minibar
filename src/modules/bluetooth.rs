@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::mpsc::{Sender, TryRecvError, channel};
 
 use dbus::arg::RefArg;
@@ -8,7 +9,7 @@ use crate::dbus::bluetooth_adapter::OrgBluezAdapter1;
 use crate::dbus::object_manager::OrgFreedesktopDBusObjectManager;
 use crate::dbus::properties::{DBusPropertiesChanged, OrgFreedesktopDBusProperties};
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(1);
 const DEFAULT_FORMAT_DISABLED: &str = "BT: off";

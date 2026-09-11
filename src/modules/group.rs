@@ -1,6 +1,6 @@
 use crate::config::get_modules;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_SPACING: u16 = 2;
 

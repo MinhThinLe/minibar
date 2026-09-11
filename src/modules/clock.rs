@@ -1,6 +1,6 @@
 use chrono::Local;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_FORMAT: &str = "%R";
 

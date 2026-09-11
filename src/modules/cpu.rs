@@ -1,8 +1,9 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::str::FromStr;
 use std::thread::sleep;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_FORMAT: &str = "CPU: {usage}";
 const DEFAULT_CRITICAL_THRESHOLD: u8 = 100;

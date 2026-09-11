@@ -2,7 +2,7 @@ mod niri;
 
 use iced::widget::{Text, button};
 
-use super::*;
+use super::prelude::*;
 
 use niri::NiriIpcBackend;
 

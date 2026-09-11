@@ -3,7 +3,7 @@ use std::process::Command;
 use std::process::Stdio;
 use std::sync::mpsc;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_FORMAT: &str = "VOL: {volume_level}";
 const DEFAULT_FORMAT_MUTED: &str = "MUTED";

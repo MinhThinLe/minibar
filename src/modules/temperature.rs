@@ -1,7 +1,7 @@
 use std::fs;
 use std::thread::sleep;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_FORMAT: &str = "TEMP: {temp_c}°C";
 const DEFAULT_CRITICAL_THRESHOLD: f32 = 80.0;

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::thread::sleep;
 
-use super::*;
+use super::prelude::*;
 
 const DEFAULT_FORMAT: &str = "BAT: {percentage}%";
 

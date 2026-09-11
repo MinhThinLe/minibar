@@ -20,18 +20,14 @@ use std::time::Duration;
 use downcast_rs::{DowncastSync, impl_downcast};
 use iced::border::Radius;
 use iced::futures::channel::mpsc::Sender;
-use iced::futures::{SinkExt, Stream};
-use iced::widget::{container, row, text};
-use iced::{Background, Border, Color, Element, Padding, Subscription, stream};
-
-use log::{error, info, warn};
+use iced::futures::SinkExt;
+use iced::{Background, Border, Color, Element, Padding, Subscription};
 
 use toml::value::Array;
 use toml::{Table, Value};
 
 use crate::bar::{BarEvent, Output};
 use crate::modules::module_id::ModuleId;
-use module_id::module_id_unique;
 
 use minibar_derives::{ModuleData, NamedModule};
 
@@ -65,6 +61,28 @@ pub static FACTORY_FUNCTIONS: LazyLock<HashMap<ModuleInternalName, ModuleFactory
 
         HashMap::from_iter(modules)
     });
+
+mod prelude {
+    pub(super) use std::time::Duration;
+
+    pub(super) use iced::futures::Stream;
+    pub(super) use iced::widget::{container, text, row};
+    pub(super) use iced::{Color, Element, Subscription, Background, stream};
+
+    pub(super) use toml::Table;
+
+    pub(super) use log::{error, warn, info};
+
+    pub(super) use crate::bar::{BarEvent, Output};
+
+    pub(super) use super::{
+        CommonStyle, DEFAULT_POLL_INTERVAL, Module, ModuleData, ModuleUpdate, NamedModule,
+        get_color, get_duration, get_float, get_icon, get_int, get_str, send_data, to_icon_list,
+        value_from_file, float_to_string,
+    };
+
+    pub(super) use super::module_id::{ModuleId, module_id_unique};
+}
 
 mod module_id {
     use std::sync::atomic::{AtomicU64, Ordering};
