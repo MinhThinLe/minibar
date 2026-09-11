@@ -96,7 +96,7 @@ impl Module for Workspaces {
     {
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT);
         let focused_color = get_color(table, "focused_color").unwrap_or(DEFAULT_FOCUSED_COLOR);
-        let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |int| int as u16);
+        let spacing = get_int(table, "spacing").unwrap_or(DEFAULT_SPACING);
 
         let style = CommonStyle::from(table);
 

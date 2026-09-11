@@ -132,7 +132,7 @@ impl Module for Bluetooth {
         let format_idle = get_str(table, "format_idle")
             .unwrap_or(DEFAULT_FORMAT_IDLE)
             .into();
-        let spacing = get_int(table, "spacing").map_or(DEFAULT_SPACING, |spacing| spacing as u16);
+        let spacing = get_int(table, "spacing").unwrap_or(DEFAULT_SPACING);
 
         let config = BluetoothConfig {
             icon_map,
@@ -188,7 +188,10 @@ impl BluetoothDevice {
         const BATTERY: &str = "{battery_percentage}";
         const NAME: &str = "{name}";
 
-        let icon = icon_map.get(self.icon_name.as_ref()).copied().unwrap_or_default();
+        let icon = icon_map
+            .get(self.icon_name.as_ref())
+            .copied()
+            .unwrap_or_default();
 
         let battery_percentage = self
             .battery_percentage
@@ -231,19 +234,11 @@ impl BluetoothDevice {
         let icon_name = device_proxy
             .get("org.bluez.Device1", "Icon")
             .ok()
-            .map(|prop| {
-                prop.as_str()
-                    .expect("Icon should be of type string")
-                    .into()
-            })?;
+            .map(|prop| prop.as_str().expect("Icon should be of type string").into())?;
         let name = device_proxy
             .get("org.bluez.Device1", "Name")
             .ok()
-            .map(|prop| {
-                prop.as_str()
-                    .expect("Name should be of type string")
-                    .into()
-            })?;
+            .map(|prop| prop.as_str().expect("Name should be of type string").into())?;
         let path = device_path.to_string().into();
         let connected = device_proxy
             .get("org.bluez.Device1", "Connected")
@@ -353,7 +348,8 @@ fn setup_device_event_listeners(
     sender: &Sender<BluetoothEvent>,
 ) {
     for device in devices {
-        let device_proxy = connection.with_proxy("org.bluez", device.path.as_ref(), DEFAULT_TIMEOUT);
+        let device_proxy =
+            connection.with_proxy("org.bluez", device.path.as_ref(), DEFAULT_TIMEOUT);
         let sender = sender.clone();
         device_proxy
             .match_signal(
@@ -418,10 +414,10 @@ fn get_bluetooth_devices(connection: &Connection) -> Vec<BluetoothDevice> {
 
         let bluetooth_device = BluetoothDevice {
             battery_percentage,
-            path,
-            connected,
             icon_name,
             name,
+            path,
+            connected,
         };
 
         bluetooth_devices.push(bluetooth_device);

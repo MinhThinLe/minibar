@@ -29,7 +29,6 @@ use log::{error, info, warn};
 use toml::value::Array;
 use toml::{Table, Value};
 
-use crate::CONFIG;
 use crate::bar::{BarEvent, Output};
 use crate::modules::module_id::ModuleId;
 use module_id::module_id_unique;
@@ -143,16 +142,6 @@ impl CommonStyle {
     fn get_background(&self) -> Option<Background> {
         Some(Background::Color(self.background?))
     }
-}
-
-fn get_poll_interval(module_name: &str) -> Duration {
-    || -> Option<Duration> {
-        let module = CONFIG.get(module_name)?;
-        let poll_interval = module.get("poll_interval")?;
-        let poll_interval = poll_interval.as_integer()?;
-        Some(Duration::from_millis(poll_interval.cast_unsigned()))
-    }()
-    .unwrap_or(DEFAULT_POLL_INTERVAL)
 }
 
 fn parse_border(value: &Value) -> Border {
@@ -275,14 +264,18 @@ fn get_str<'a>(table: &'a Table, key: &'a str) -> Option<&'a str> {
     string.as_str()
 }
 
-fn get_int(table: &Table, key: &str) -> Option<i64> {
+fn get_duration(table: &Table, key: &str) -> Option<Duration> {
+    let duration: u64 = get_int(table, key)?;
+    Some(Duration::from_millis(duration))
+}
+
+fn get_int<T: TryFrom<i64>>(table: &Table, key: &str) -> Option<T> {
     let int = table.get(key)?;
-    int.as_integer()
+    int.as_integer()?.try_into().ok()
 }
 
 fn get_color(table: &Table, key: &str) -> Option<Color> {
-    let color = get_int(table, key)?;
-    let raw_rgba8 = u32::try_from(color).ok()?;
+    let raw_rgba8: u32 = get_int(table, key)?;
     Some(rgba8_to_color(raw_rgba8))
 }
 

@@ -64,11 +64,7 @@ impl Module for Script {
     {
         let id = [module_id_unique()];
 
-        let poll_interval = get_int(table, "poll_interval")
-            .map_or(DEFAULT_POLL_INTERVAL, |interval| {
-                Duration::from_millis(interval.cast_unsigned())
-            });
-
+        let poll_interval = get_duration(table, "poll_interval").unwrap_or(DEFAULT_POLL_INTERVAL);
         let command = get_str(table, "command").unwrap_or_default().into();
 
         let config = ScriptConfig {

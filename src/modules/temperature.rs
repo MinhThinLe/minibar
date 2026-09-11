@@ -10,6 +10,7 @@ const DEFAULT_CRITICAL_THRESHOLD: f32 = 80.0;
 struct TemperatureReading(f32);
 
 struct TemperatureConfig {
+    poll_interval: Duration,
     format: Box<str>,
     icons: Vec<char>,
     critical_threshold: f32,
@@ -47,9 +48,10 @@ impl Module for Temperature {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run_with(self.id[0], |destination| {
-            worker(*destination)
-        }))
+        Some(Subscription::run_with(
+            (self.id[0], self.config.poll_interval),
+            |(destination, poll_interval)| worker(*destination, *poll_interval),
+        ))
     }
 
     fn new_or_default(table: &Table) -> Box<dyn Module>
@@ -62,11 +64,14 @@ impl Module for Temperature {
             get_float(table, "critical_threshold").unwrap_or(DEFAULT_CRITICAL_THRESHOLD);
         let critical_foreground = get_color(table, "critical_foreground");
 
+        let poll_interval = get_duration(table, "poll_interval").unwrap_or(DEFAULT_POLL_INTERVAL);
+
         let style = CommonStyle::from(table);
 
         let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
 
         let config = TemperatureConfig {
+            poll_interval,
             format,
             icons,
             critical_threshold,
@@ -124,9 +129,8 @@ impl TemperatureReading {
     }
 }
 
-fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+fn worker(module_id: ModuleId, poll_interval: Duration) -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async move |mut output| {
-        let poll_interval = get_poll_interval("temperature");
         loop {
             let reading = TemperatureReading(read_temp());
             send_data(&mut output, module_id, reading).await;

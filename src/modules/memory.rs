@@ -28,6 +28,7 @@ struct MemoryStatus {
 
 struct MemoryConfig {
     format: Box<str>,
+    poll_interval: Duration,
     critical_threshold: u8,
     critical_foreground: Option<Color>,
 }
@@ -63,9 +64,10 @@ impl Module for Memory {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run_with(self.id[0], |destination| {
-            worker(*destination)
-        }))
+        Some(Subscription::run_with(
+            (self.id[0], self.config.poll_interval),
+            |(destination, poll_interval)| worker(*destination, *poll_interval),
+        ))
     }
 
     fn new_or_default(table: &Table) -> Box<dyn Module>
@@ -74,14 +76,16 @@ impl Module for Memory {
     {
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT).into();
 
-        let critical_threshold = get_int(table, "critical_threshold")
-            .map_or(DEFAULT_CRITICAL_THRESHOLD, |threshold| threshold as u8);
+        let critical_threshold =
+            get_int(table, "critical_threshold").unwrap_or(DEFAULT_CRITICAL_THRESHOLD);
         let critical_foreground = get_color(table, "critical_forground");
+        let poll_interval = get_duration(table, "poll_interval").unwrap_or(DEFAULT_POLL_INTERVAL);
 
         let style = CommonStyle::from(table);
 
         let config = MemoryConfig {
             format,
+            poll_interval,
             critical_threshold,
             critical_foreground,
         };
@@ -237,10 +241,8 @@ fn measure() -> MemoryStatus {
     MemoryStatus::from_str(&mem_details).unwrap_or_default()
 }
 
-fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+fn worker(module_id: ModuleId, poll_interval: Duration) -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async move |mut output| {
-        let poll_interval = get_poll_interval("memory");
-
         loop {
             send_data(&mut output, module_id, measure()).await;
             sleep(poll_interval);

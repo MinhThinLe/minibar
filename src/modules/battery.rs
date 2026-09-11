@@ -21,6 +21,7 @@ struct BatteryStatus {
 
 struct BatteryConfig {
     format: Box<str>,
+    poll_interval: Duration,
     icons: Vec<char>,
     charging_icons: Vec<char>,
     critical_threshold: u8,
@@ -104,25 +105,29 @@ impl Module for Battery {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run_with(self.id[0], |destination| {
-            worker(*destination)
-        }))
+        Some(Subscription::run_with(
+            (self.id[0], self.config.poll_interval),
+            |(destination, poll_interval)| worker(*destination, *poll_interval),
+        ))
     }
 
     fn new_or_default(table: &Table) -> Box<dyn Module>
     where
         Self: Sized,
     {
-        let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT);
-        let critical_threshold = get_int(table, "critical_threshold").unwrap_or_default() as u8;
+        let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT).into();
+        let critical_threshold = get_int(table, "critical_threshold").unwrap_or_default();
         let critical_foreground = get_color(table, "ciritical_foreground");
+        let poll_interval = get_duration(table, "poll_interval").unwrap_or(DEFAULT_POLL_INTERVAL);
+
         let style = CommonStyle::from(table);
 
         let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
         let charging_icons = to_icon_list(get_str(table, "icons_charging").unwrap_or_default());
 
         let config = BatteryConfig {
-            format: format.into(),
+            format,
+            poll_interval,
             icons,
             charging_icons,
             critical_threshold,
@@ -158,9 +163,8 @@ fn read_battery_info() -> BatteryStatus {
     BatteryStatus { percentage, state }
 }
 
-fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+fn worker(module_id: ModuleId, poll_interval: Duration) -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async move |mut output| {
-        let poll_interval = get_poll_interval("battery");
         let mut content = BatteryStatus::default();
 
         loop {

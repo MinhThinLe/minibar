@@ -21,6 +21,7 @@ struct BacklightStatus {
 
 struct BacklightConfig {
     format: Box<str>,
+    poll_interval: Duration,
     icons: Vec<char>,
 }
 
@@ -64,9 +65,10 @@ impl Module for Backlight {
     }
 
     fn subscription(&self) -> Option<Subscription<ModuleUpdate>> {
-        Some(Subscription::run_with(self.id[0], |destination| {
-            worker(*destination)
-        }))
+        Some(Subscription::run_with(
+            (self.id[0], self.config.poll_interval),
+            |(destination, poll_interval)| worker(*destination, *poll_interval),
+        ))
     }
 
     fn id(&self) -> &[ModuleId] {
@@ -81,8 +83,13 @@ impl Module for Backlight {
 
         let format = get_str(table, "format").unwrap_or(DEFAULT_FORMAT).into();
         let icons = to_icon_list(get_str(table, "icons").unwrap_or_default());
+        let poll_interval = get_duration(table, "poll_interval").unwrap_or(DEFAULT_POLL_INTERVAL);
 
-        let config = BacklightConfig { format, icons };
+        let config = BacklightConfig {
+            format,
+            poll_interval,
+            icons,
+        };
 
         let style = CommonStyle::from(table);
 
@@ -184,10 +191,9 @@ fn output_name(output: &Output) -> Option<String> {
     output_info.name.clone()
 }
 
-fn worker(module_id: ModuleId) -> impl Stream<Item = ModuleUpdate> {
+fn worker(module_id: ModuleId, poll_interval: Duration) -> impl Stream<Item = ModuleUpdate> {
     stream::channel(0, async move |mut output| {
         let mut backlight_readers = BacklightReaderFs::get_all();
-        let poll_interval = get_poll_interval("backlight");
         loop {
             for reader in &mut backlight_readers {
                 let status = reader.read();

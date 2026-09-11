@@ -73,8 +73,7 @@ impl Group {
             .collect();
 
         let style = CommonStyle::from(module_config);
-        let spacing =
-            get_int(module_config, "spacing").map_or(DEFAULT_SPACING, |spacing| spacing as u16);
+        let spacing = get_int(module_config, "spacing").unwrap_or(DEFAULT_SPACING);
 
         Self {
             children,
